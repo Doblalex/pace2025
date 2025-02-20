@@ -1,0 +1,3 @@
+[submodule "PACE2025-instances"]
+	path = instances/official
+	url = https://github.com/MarioGrobler/PACE2025-instances.git
