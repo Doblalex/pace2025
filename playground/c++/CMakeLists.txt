@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.18)
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_COMPILER g++)
 
 project(Pace2025)
@@ -11,6 +11,8 @@ endif()
 set(SOURCES
   src/main.cpp
   src/readinstance.cpp
+  src/preprocessing.cpp
+  src/partition.cpp
 )
 
 add_executable(dsexact ${SOURCES})

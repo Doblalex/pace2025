@@ -1,6 +1,6 @@
 #include "readinstance.hpp"
 
-pair<AdjacencyList, EdgeSet> read_instance()
+Instance* read_instance(globalprops* props)
 {
     unsigned int n, m;    
     string s;
@@ -10,8 +10,17 @@ pair<AdjacencyList, EdgeSet> read_instance()
     iss>>s;
     iss>>s;
     iss >> n >> m;
-    AdjacencyList adj(n);
-    EdgeSet edges;
+    props->n = n;
+    props->m = m;
+    props->id_to_vertex.resize(n+1);
+    Instance* instance = new Instance(props);
+    instance->n = n;
+    instance->m = m;
+    instance->G = new Graph();
+    for (VertexCount i = 0; i < n; i++) {
+        props->id_to_vertex[i+1] = boost::add_vertex(*instance->G);
+        (*instance->G)[props->id_to_vertex[i+1]].id = i+1;
+    }
 
     while (m) {
         getline(cin, line);
@@ -20,10 +29,10 @@ pair<AdjacencyList, EdgeSet> read_instance()
         Vertex u, v;
         istringstream iss(line);
         iss >> u >> v;
-        adj[u-1].insert(v-1);
-        adj[v-1].insert(u-1);
-        edges.insert({min(u-1, v-1), max(u-1, v-1)});
+        boost::add_edge(props->id_to_vertex[u], props->id_to_vertex[v], (*instance->G));
+        (*instance->G)[props->id_to_vertex[u]].cnt_undominated_neighbors++;
+        (*instance->G)[props->id_to_vertex[v]].cnt_undominated_neighbors++;
         m--;
     }
-    return {adj, edges};
+    return instance;
 }
