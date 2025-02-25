@@ -2,12 +2,18 @@
 #include "cxxopts.h"
 #include "readinstance.hpp"
 #include "preprocessing.hpp"
+#include "heuristics.hpp"
 
 void recursiveReduction(Instance* instance, VertexList& dominatingSet) {
     if (instance->n == 0) {
         return;
-    }
+    }    
+
     if (reductionIsolated(instance, dominatingSet)) {
+        recursiveReduction(instance, dominatingSet);
+        return;
+    }
+    if (reduceUniversal(instance, dominatingSet)) {
         recursiveReduction(instance, dominatingSet);
         return;
     }
@@ -18,16 +24,7 @@ void recursiveReduction(Instance* instance, VertexList& dominatingSet) {
     if (reductionTwins(instance)) {
         recursiveReduction(instance, dominatingSet);
         return;
-    }
-    if (reductionDomination(instance)) {
-        recursiveReduction(instance, dominatingSet);
-        return;
-    }
-
-    if (reductionByCanBeDominatingSet(instance, dominatingSet)) {
-        recursiveReduction(instance, dominatingSet);
-        return;
-    }
+    }      
 
     auto subinstances = decomposeConnectedComponents(instance);
     if (subinstances.size() > 1) {
@@ -39,10 +36,29 @@ void recursiveReduction(Instance* instance, VertexList& dominatingSet) {
 
     instance = subinstances.front();
 
+    // non-linear reductions
+
     if (reductionDegree1(instance, dominatingSet)) {
         recursiveReduction(instance, dominatingSet);
         return;
     }
+
+    if (reductionDomination(instance)) {
+        recursiveReduction(instance, dominatingSet);
+        return;
+    }
+
+    if (reductionByCanBeDominatingSet(instance, dominatingSet)) {
+        recursiveReduction(instance, dominatingSet);
+        return;
+    }
+
+    if (reductionDominationPaper(instance, dominatingSet)) {
+        recursiveReduction(instance, dominatingSet);
+        return;
+    }  
+
+    
     
     debug(instance->CntCanBeDominatingSet(), instance->CntNeedsDomination(), instance->n);
     delete instance;
@@ -52,6 +68,10 @@ int main(int argc, char** argv) {
     globalprops* props = new globalprops();
 
     auto instance = read_instance(props);
+    // VertexList greedysol;
+    // Greedy(instance, greedysol);
+    // debug(greedysol.size());
+    
     debug(instance->n, instance->m);
     VertexList dominatingSet;
     recursiveReduction(instance, dominatingSet);    

@@ -13,6 +13,7 @@ set(SOURCES
   src/readinstance.cpp
   src/preprocessing.cpp
   src/partition.cpp
+  src/heuristics.cpp
 )
 
 add_executable(dsexact ${SOURCES})

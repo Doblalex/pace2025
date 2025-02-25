@@ -44,6 +44,25 @@ class Instance
         }
     }
 
+    bool deleteVerticesWithIterator(unordered_set<VD>& vertices, Graph::vertex_iterator& iterator) {
+        n -= vertices.size();
+        bool increment = false;
+        for (auto v : vertices)
+        {
+            m -= boost::out_degree(v, *G);
+            clear_vertex(v, *G);
+        }
+        for (auto v: vertices)
+        {
+            if (*iterator == v) {
+                iterator++;
+                increment = true;
+            }
+            boost::remove_vertex(v, *G);
+        }
+        return increment;
+    }
+
     void deleteVertices(list<VD> &vertices)
     {
         n -= vertices.size();

@@ -12,7 +12,10 @@ bool reductionIsolated(Instance *instance, VertexList& dominatingSet)
         if (boost::out_degree(vd, (*instance->G)) == 0)
         {
             reduced = true;
-            dominatingSet.push_back((*instance->G)[vd].id);
+            if (!(*instance->G)[vd].is_dominated)
+            {
+                dominatingSet.push_back((*instance->G)[vd].id);
+            }
             instance->deleteVertex(vd);
         }
     }
@@ -125,8 +128,8 @@ bool reductionDomination(Instance* instance) {
                     break;
                 }
             }
-            if (dominated && (*instance->G)[v].can_be_dominating_set == true) {
-                (*instance->G)[v].can_be_dominating_set = false;
+            if (dominated && (*instance->G)[w].can_be_dominating_set == true && (*instance->G)[v].can_be_dominating_set == true) {
+                (*instance->G)[w].can_be_dominating_set = false;
                 reduced = true;
             }
         }
@@ -187,4 +190,116 @@ bool reductionByCanBeDominatingSet(Instance* instance, VertexList& dominatingSet
 
     return reduced;
     
+}
+
+bool reduceUniversal(Instance* instance, VertexList& dominatingSet) {
+    bool reduced = false;
+    bool someoneneedsdomination = false;
+    for (VD v: Vertices((*instance->G)) ) {
+        if (!(*instance->G)[v].is_dominated) {
+            someoneneedsdomination = true;
+            break;
+        }
+    }
+    if (someoneneedsdomination)
+    {
+        for (VD v: Vertices((*instance->G)) ) {
+            if (boost::out_degree(v, (*instance->G)) == instance->n-1) {
+                dominatingSet.push_back((*instance->G)[v].id);
+                unordered_set<VD> toDelete;
+                instance->toDominatingSet(v, toDelete);
+                instance->deleteVertices(toDelete);
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
+bool reductionDominationPaper(Instance* instance, VertexList& dominatingSet) {
+    static vector<int> visited(instance->props->n+1, 0);
+    static vector<bool> N2(instance->props->n+1, false);
+    
+    bool reduced = false;
+    Graph::vertex_iterator vi, vend;
+    for (boost::tie(vi, vend) = IteratorVertices((*instance->G)); vi != vend; )
+    {
+        auto v = *vi;
+        if ((*instance->G)[v].can_be_dominating_set == false) {
+            vi++;
+            continue;
+        }
+        visited[(*instance->G)[v].id] = 1;
+        bool someonedominated = false;
+        for (auto w: Neighbors((*instance->G), v)) {
+            visited[(*instance->G)[w].id] = 1;
+            if (!(*instance->G)[w].can_be_dominating_set) {
+                someonedominated = true;
+            }
+        }
+        if (!someonedominated) {
+            visited[(*instance->G)[v].id] = 0;
+            for (auto w: Neighbors((*instance->G), v)) {
+                visited[(*instance->G)[w].id] = 0;
+            }
+            vi++;
+            continue;
+        }
+        list<VD> N1v;
+        for (auto w: Neighbors((*instance->G), v)) {
+            for (auto u: Neighbors((*instance->G), w)) {
+                if (visited[(*instance->G)[u].id] == 0) {
+                    N1v.push_back(w);
+                    visited[(*instance->G)[w].id] = 2;
+                    break;
+                }
+            }
+        }
+
+        list<VD> N2v;
+        for (auto w: N1v) {
+            for (auto u: Neighbors((*instance->G), w)) {
+                if (visited[(*instance->G)[u].id] == 1 && u != v && !N2[(*instance->G)[u].id]) {
+                    N2[(*instance->G)[u].id] = true;
+                    N2v.push_back(u);
+                    visited[(*instance->G)[u].id] = 2;
+                }
+            }
+        }
+
+        list<VD> N3v;
+        for (auto w: Neighbors((*instance->G), v)) {
+            if (visited[(*instance->G)[w].id] == 1) {
+                N3v.push_back(w);
+            }           
+        }      
+        
+        bool someoneneedsdomination = false;
+        for (auto w: N3v) {
+            if (!(*instance->G)[w].is_dominated) {
+                someoneneedsdomination = true;
+                break;
+            }
+        }
+
+        for (auto w: Neighbors((*instance->G), v)) {
+            visited[(*instance->G)[w].id] = 0;
+            N2[(*instance->G)[w].id] = false;
+        }
+        visited[(*instance->G)[v].id] = 0;
+
+        if (someoneneedsdomination) {
+            // debug("Reduction paper");
+            reduced = true;
+            dominatingSet.push_back((*instance->G)[v].id);
+            unordered_set<VD> toDelete;
+            instance->toDominatingSet(v, toDelete);
+            if (instance->deleteVerticesWithIterator(toDelete, vi)) {
+                continue;
+            }
+        }
+        vi++;
+    }
+    
+    return reduced;
 }
