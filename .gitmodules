@@ -5,12 +5,16 @@
 [submodule "scip"]
 	path = playground/c++/ext/scip
 	url = https://github.com/scipopt/scip.git
+	shallow = true
 [submodule "soplex"]
 	path = playground/c++/ext/soplex
 	url = https://github.com/scipopt/soplex.git
+	shallow = true
 [submodule "evalmaxsat"]
 	path = playground/c++/ext/EvalMaxSAT
 	url = https://github.com/FlorentAvellaneda/EvalMaxSAT.git
+	shallow = true
 [submodule "ortools"]
 	path = playground/c++/ext/or-tools
 	url = https://github.com/google/or-tools.git
+	shallow = true
