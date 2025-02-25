@@ -1,15 +1,16 @@
 [submodule "instances"]
 	path = instances/official
 	url = https://github.com/MarioGrobler/PACE2025-instances.git
-[submodule "playground/c++/ext/scip"]
+	shallow = true
+[submodule "scip"]
 	path = playground/c++/ext/scip
 	url = https://github.com/scipopt/scip.git
-[submodule "playground/c++/ext/soplex"]
+[submodule "soplex"]
 	path = playground/c++/ext/soplex
 	url = https://github.com/scipopt/soplex.git
-[submodule "playground/c++/ext/EvalMaxSAT"]
+[submodule "evalmaxsat"]
 	path = playground/c++/ext/EvalMaxSAT
 	url = https://github.com/FlorentAvellaneda/EvalMaxSAT.git
-[submodule "playground/c++/ext/or-tools"]
+[submodule "ortools"]
 	path = playground/c++/ext/or-tools
 	url = https://github.com/google/or-tools.git
