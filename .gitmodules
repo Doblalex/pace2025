@@ -1,4 +1,4 @@
-[submodule "instnaces"]
+[submodule "instances"]
 	path = instances/official
 	url = https://github.com/MarioGrobler/PACE2025-instances.git
 [submodule "playground/c++/ext/scip"]
