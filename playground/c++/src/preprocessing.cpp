@@ -50,19 +50,19 @@ bool reductionDegree1(Instance *instance, VertexList& dominatingSet)
         progress = false;
         unordered_set<VD> toDelete;
 
-        for (auto v : Vertices((*instance->G)))
+        for (auto v : MyVertices((*instance->G)))
         {
             if (boost::out_degree(v, (*instance->G)) == 1)
             {
                 progress = true;
                 reduced = true;
+                auto w = *boost::adjacent_vertices(v, (*instance->G)).first;   
                 if ((*instance->G)[v].is_dominated)
                 {
-                    toDelete.insert(v);
+                    // toDelete.insert(v); THIS IS WRONG
                 }
-                else
-                {
-                    auto w = *boost::adjacent_vertices(v, (*instance->G)).first;
+                else if ((*instance->G)[w].can_be_dominating_set)
+                {                                                         
                     dominatingSet.push_back((*instance->G)[w].id);
                     instance->toDominatingSet(w, toDelete);
                 }
@@ -79,7 +79,7 @@ list<Instance*> decomposeConnectedComponents(Instance *instance)
 {
     boost::property_map<Graph, boost::vertex_index_t>::type index_map = boost::get(boost::vertex_index, (*instance->G));
     int cnt = 0;
-    for (auto v: Vertices((*instance->G))) {
+    for (auto v: MyVertices((*instance->G))) {
         boost::put(index_map, v, cnt++);
     }
     int number_connected_components = boost::connected_components((*instance->G), index_map);
@@ -87,7 +87,7 @@ list<Instance*> decomposeConnectedComponents(Instance *instance)
     for (auto &g: subgraphs) {
         g = new Graph();
     }
-    for (VD v: Vertices((*instance->G))) {        
+    for (VD v: MyVertices((*instance->G))) {        
         auto idx = boost::get(index_map, v);
         VD new_v = boost::add_vertex(*subgraphs[idx]);
         (*subgraphs[idx])[new_v] = (*instance->G)[v];
@@ -116,14 +116,14 @@ bool reductionDomination(Instance* instance) {
     bool reduced = false;
     static vector<bool> is_neighbor(instance->props->n+1, false);
     
-    for (auto v: Vertices((*instance->G))) {
+    for (auto v: MyVertices((*instance->G))) {
         for (auto w: Neighbors((*instance->G), v)) {
             is_neighbor[(*instance->G)[w].id] = true;
         }        
         for (auto w: Neighbors((*instance->G), v)) {
             bool dominated = true;
             for (auto u: Neighbors((*instance->G), w)) {
-                if (u != v && !is_neighbor[(*instance->G)[u].id]) {
+                if (u != v && !is_neighbor[(*instance->G)[u].id] && !(*instance->G)[u].is_dominated) {
                     dominated = false;
                     break;
                 }
@@ -161,7 +161,7 @@ bool reductionByCanBeDominatingSet(Instance* instance, VertexList& dominatingSet
     unordered_set<VD> toDelete;
     list<VD> toDominatingSet;
     bool reduced = false;
-    for (VD v: Vertices((*instance->G))) {
+    for (VD v: MyVertices((*instance->G))) {
         auto vi = (*instance->G)[v];
         if (vi.can_be_dominating_set == false && vi.is_dominated == true) {
             reduced = true;
@@ -195,7 +195,7 @@ bool reductionByCanBeDominatingSet(Instance* instance, VertexList& dominatingSet
 bool reduceUniversal(Instance* instance, VertexList& dominatingSet) {
     bool reduced = false;
     bool someoneneedsdomination = false;
-    for (VD v: Vertices((*instance->G)) ) {
+    for (VD v: MyVertices((*instance->G)) ) {
         if (!(*instance->G)[v].is_dominated) {
             someoneneedsdomination = true;
             break;
@@ -203,7 +203,7 @@ bool reduceUniversal(Instance* instance, VertexList& dominatingSet) {
     }
     if (someoneneedsdomination)
     {
-        for (VD v: Vertices((*instance->G)) ) {
+        for (VD v: MyVertices((*instance->G)) ) {
             if (boost::out_degree(v, (*instance->G)) == instance->n-1) {
                 dominatingSet.push_back((*instance->G)[v].id);
                 unordered_set<VD> toDelete;

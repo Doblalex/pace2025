@@ -7,3 +7,9 @@
 [submodule "playground/c++/ext/soplex"]
 	path = playground/c++/ext/soplex
 	url = https://github.com/scipopt/soplex.git
+[submodule "playground/c++/ext/EvalMaxSAT"]
+	path = playground/c++/ext/EvalMaxSAT
+	url = https://github.com/FlorentAvellaneda/EvalMaxSAT.git
+[submodule "playground/c++/ext/or-tools"]
+	path = playground/c++/ext/or-tools
+	url = https://github.com/google/or-tools.git

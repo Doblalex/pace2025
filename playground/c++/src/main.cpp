@@ -3,6 +3,7 @@
 #include "readinstance.hpp"
 #include "preprocessing.hpp"
 #include "heuristics.hpp"
+#include "exactsolver.hpp"
 
 void recursiveReduction(Instance* instance, VertexList& dominatingSet) {
     if (instance->n == 0) {
@@ -38,11 +39,12 @@ void recursiveReduction(Instance* instance, VertexList& dominatingSet) {
 
     // non-linear reductions
 
-    if (reductionDegree1(instance, dominatingSet)) {
-        recursiveReduction(instance, dominatingSet);
-        return;
-    }
-
+    // TODO: bugs in the reduction below
+    // if (reductionDegree1(instance, dominatingSet)) {
+    //     recursiveReduction(instance, dominatingSet);
+    //     return;
+    // }
+    
     if (reductionDomination(instance)) {
         recursiveReduction(instance, dominatingSet);
         return;
@@ -53,14 +55,16 @@ void recursiveReduction(Instance* instance, VertexList& dominatingSet) {
         return;
     }
 
-    if (reductionDominationPaper(instance, dominatingSet)) {
-        recursiveReduction(instance, dominatingSet);
-        return;
-    }  
+    // TODO: bugs in the reduction below
+    // if (reductionDominationPaper(instance, dominatingSet)) {
+    //     recursiveReduction(instance, dominatingSet);
+    //     return;
+    // }  
 
     
     
     debug(instance->CntCanBeDominatingSet(), instance->CntNeedsDomination(), instance->n);
+    solveEvalMaxSat(instance, dominatingSet);
     delete instance;
 }
 
@@ -76,4 +80,5 @@ int main(int argc, char** argv) {
     VertexList dominatingSet;
     recursiveReduction(instance, dominatingSet);    
     debug(dominatingSet.size());
+    cout<<dominatingSet.size()<<endl;
 }

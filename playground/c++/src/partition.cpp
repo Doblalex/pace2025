@@ -9,7 +9,7 @@ PartitionRefinement::PartitionRefinement(Graph* graph, globalprops* props) : gra
     this->start = new PartitionElement();
     this->end = this->start;
     size_t i = 0;
-    for (auto v: Vertices(*graph)) {        
+    for (auto v: MyVertices(*graph)) {        
         partitionelementAt[(*graph)[v].id] = this->start;            
         this->start->elements.push_back((*graph)[v].id);
         vectorElementAt[(*graph)[v].id] = i++;
@@ -18,7 +18,7 @@ PartitionRefinement::PartitionRefinement(Graph* graph, globalprops* props) : gra
 
 bool PartitionRefinement::dorefine()
 {
-    for (VD v: Vertices(*graph)) {
+    for (VD v: MyVertices(*graph)) {
         vector<Vertex> ids;
         ids.emplace_back((*graph)[v].id);
         for (VD neighbor: Neighbors(*graph, v)) {

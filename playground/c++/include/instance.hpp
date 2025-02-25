@@ -108,7 +108,7 @@ class Instance
     VertexCount CntCanBeDominatingSet()
     {
         VertexCount cnt = 0;
-        for (auto v: Vertices((*G))) {
+        for (auto v: MyVertices((*G))) {
             if ((*G)[v].can_be_dominating_set) {
                 cnt++;
             }
@@ -119,7 +119,7 @@ class Instance
     VertexCount CntNeedsDomination()
     {
         VertexCount cnt = 0;
-        for (auto v: Vertices((*G))) {
+        for (auto v: MyVertices((*G))) {
             if (!(*G)[v].is_dominated) {
                 cnt++;
             }

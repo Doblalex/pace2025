@@ -14,6 +14,8 @@
 #include <boost/graph/subgraph.hpp>
 #include <boost/graph/filtered_graph.hpp>
 #include <boost/function.hpp>
+#include <boost/graph/iteration_macros.hpp>
+#include <boost/graph/graph_utility.hpp>
 
 #define MP make_pair
 #define PB push_back
@@ -26,9 +28,9 @@
 #define MYDEBUG
 #define MYLOCAL
 
-#ifdef MYDEBUG
-#undef NDEBUG
-#endif
+// #ifdef MYDEBUG
+// #undef NDEBUG
+// #endif
 
 using namespace std;
 using namespace std::chrono;
@@ -171,7 +173,7 @@ typedef boost::adjacency_list<boost::listS, boost::listS, boost::undirectedS, bo
 typedef boost::filtered_graph<Graph, boost::keep_all, boost::keep_all> FilteredGraph;
 using VD = boost::graph_traits<Graph>::vertex_descriptor;
 #define IteratorVertices(x) boost::vertices(x)
-#define Vertices(x) boost::make_iterator_range(boost::vertices(x))
+#define MyVertices(x) boost::make_iterator_range(boost::vertices(x))
 #define IteratorEdges(x) boost::edges(x)
 #define Edges(x) boost::make_iterator_range(boost::edges(x))
 #define Neighbors(g,v) boost::make_iterator_range(boost::adjacent_vertices(v, g))
