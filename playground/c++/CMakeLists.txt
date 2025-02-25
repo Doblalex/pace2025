@@ -64,6 +64,25 @@ if(CXX)
 endif()
 target_link_libraries(dsexact ${GUROBI_LIBRARY})
 
+# OR-TOOLS -----------------------------------------------------------------
+set(BUILD_DEPS ON)
+set(BUILD_DOC OFF)
+set(BUILD_FLATZINC OFF)
+set(BUILD_SAMPLES OFF)
+set(BUILD_EXAMPLES OFF)
+set(USE_HIGHS OFF)
+set(USE_SCIP OFF)
+set(USE_COINOR OFF)
+set(USE_GLPK OFF)
+set(USE_CPLEX OFF)
+set(USE_DOTNET_6 OFF)
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/ext/or-tools/cmake")
+add_subdirectory("${PROJECT_SOURCE_DIR}/ext/or-tools")
+
+include_directories(${PROJECT_SOURCE_DIR}/ext/or-tools/ortools)
+
+target_link_libraries(dsexact ortools::ortools)
+
 # SCIP ---------------------------------------------------------------------
 
 # set(IPOPT off)

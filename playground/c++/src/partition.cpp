@@ -9,7 +9,7 @@ PartitionRefinement::PartitionRefinement(Graph* graph, globalprops* props) : gra
     this->start = new PartitionElement();
     this->end = this->start;
     size_t i = 0;
-    for (auto v: MyVertices(*graph)) {        
+    BGL_FORALL_VERTICES(v, *graph, Graph) {     
         partitionelementAt[(*graph)[v].id] = this->start;            
         this->start->elements.push_back((*graph)[v].id);
         vectorElementAt[(*graph)[v].id] = i++;
@@ -18,10 +18,10 @@ PartitionRefinement::PartitionRefinement(Graph* graph, globalprops* props) : gra
 
 bool PartitionRefinement::dorefine()
 {
-    for (VD v: MyVertices(*graph)) {
+    BGL_FORALL_VERTICES(v, *graph, Graph) {
         vector<Vertex> ids;
         ids.emplace_back((*graph)[v].id);
-        for (VD neighbor: Neighbors(*graph, v)) {
+        BGL_FORALL_ADJ_T(v, neighbor, *graph, Graph) {
             ids.emplace_back((*graph)[neighbor].id);
         }
         refine(ids);

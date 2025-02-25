@@ -172,18 +172,17 @@ struct vertex_info;
 typedef boost::adjacency_list<boost::listS, boost::listS, boost::undirectedS, boost::property<boost::vertex_index_t, size_t, vertex_info>> Graph;
 typedef boost::filtered_graph<Graph, boost::keep_all, boost::keep_all> FilteredGraph;
 using VD = boost::graph_traits<Graph>::vertex_descriptor;
-#define IteratorVertices(x) boost::vertices(x)
-#define MyVertices(x) boost::make_iterator_range(boost::vertices(x))
-#define IteratorEdges(x) boost::edges(x)
-#define Edges(x) boost::make_iterator_range(boost::edges(x))
-#define Neighbors(g,v) boost::make_iterator_range(boost::adjacent_vertices(v, g))
+// #define IteratorVertices(x) boost::vertices(x)
+// #define MyVertices(x) boost::make_iterator_range(boost::vertices(x))
+// #define IteratorEdges(x) boost::edges(x)
+// #define Neighbors(g,v) boost::make_iterator_range(boost::adjacent_vertices(v, g))
 
 struct vertex_info
 {
     Vertex id;
     bool is_dominated = false;
     bool can_be_dominating_set = true;
-    VertexCount cnt_undominated_neighbors;
+    VertexCount cnt_undominated_neighbors = 0;
     VD forward;
 };
 

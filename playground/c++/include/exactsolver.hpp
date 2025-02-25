@@ -6,3 +6,5 @@
 void solveGurobiExactIlp(Instance* instance, VertexList& dominatingSet);
 
 void solveEvalMaxSat(Instance* instance, VertexList& dominatingSet);
+
+void solveCPSat(Instance* instance, VertexList& dominatingSet);

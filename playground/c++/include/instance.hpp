@@ -80,11 +80,11 @@ class Instance
     void toDominatingSet(VD v, unordered_set<VD>& toDelete)
     {
         toDelete.insert(v);
-        for (auto vd : Neighbors(*G, v))
+        BGL_FORALL_ADJ_T(v, vd, *G, Graph)
         {
             if (!(*G)[vd].is_dominated)
             {
-                for (auto vd2 : Neighbors(*G, vd))
+                BGL_FORALL_ADJ_T(vd, vd2, *G, Graph)
                 {
                     (*G)[vd2].cnt_undominated_neighbors--; // vd is dominated
                     if ((*G)[vd2].cnt_undominated_neighbors == 0 && (*G)[vd2].is_dominated)
@@ -108,7 +108,7 @@ class Instance
     VertexCount CntCanBeDominatingSet()
     {
         VertexCount cnt = 0;
-        for (auto v: MyVertices((*G))) {
+        BGL_FORALL_VERTICES(v, *G, Graph) {
             if ((*G)[v].can_be_dominating_set) {
                 cnt++;
             }
@@ -119,7 +119,7 @@ class Instance
     VertexCount CntNeedsDomination()
     {
         VertexCount cnt = 0;
-        for (auto v: MyVertices((*G))) {
+        BGL_FORALL_VERTICES(v, *G, Graph) {
             if (!(*G)[v].is_dominated) {
                 cnt++;
             }

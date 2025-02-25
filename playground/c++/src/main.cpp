@@ -6,6 +6,7 @@
 #include "exactsolver.hpp"
 
 void recursiveReduction(Instance* instance, VertexList& dominatingSet) {
+    // debug(instance->n, instance->m);
     if (instance->n == 0) {
         return;
     }    
@@ -22,10 +23,6 @@ void recursiveReduction(Instance* instance, VertexList& dominatingSet) {
         recursiveReduction(instance, dominatingSet);
         return;
     }    
-    if (reductionTwins(instance)) {
-        recursiveReduction(instance, dominatingSet);
-        return;
-    }      
 
     auto subinstances = decomposeConnectedComponents(instance);
     if (subinstances.size() > 1) {
@@ -38,12 +35,10 @@ void recursiveReduction(Instance* instance, VertexList& dominatingSet) {
     instance = subinstances.front();
 
     // non-linear reductions
-
-    // TODO: bugs in the reduction below
-    // if (reductionDegree1(instance, dominatingSet)) {
-    //     recursiveReduction(instance, dominatingSet);
-    //     return;
-    // }
+    if (reductionDegree1(instance, dominatingSet)) {
+        recursiveReduction(instance, dominatingSet);
+        return;
+    }
     
     if (reductionDomination(instance)) {
         recursiveReduction(instance, dominatingSet);
@@ -54,17 +49,15 @@ void recursiveReduction(Instance* instance, VertexList& dominatingSet) {
         recursiveReduction(instance, dominatingSet);
         return;
     }
-
-    // TODO: bugs in the reduction below
-    // if (reductionDominationPaper(instance, dominatingSet)) {
-    //     recursiveReduction(instance, dominatingSet);
-    //     return;
-    // }  
+    if (reductionDominationPaper(instance, dominatingSet)) {
+        recursiveReduction(instance, dominatingSet);
+        return;
+    }  
 
     
     
     debug(instance->CntCanBeDominatingSet(), instance->CntNeedsDomination(), instance->n);
-    solveEvalMaxSat(instance, dominatingSet);
+    solveCPSat(instance, dominatingSet);
     delete instance;
 }
 
@@ -78,6 +71,7 @@ int main(int argc, char** argv) {
     
     debug(instance->n, instance->m);
     VertexList dominatingSet;
+    reductionTwins(instance); // It seems very unsafe to do twin reduction rule once there are dominated vertices. 
     recursiveReduction(instance, dominatingSet);    
     debug(dominatingSet.size());
     cout<<dominatingSet.size()<<endl;

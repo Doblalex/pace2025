@@ -4,7 +4,7 @@ void Greedy(Instance* instance, VertexList& dominatingSet) {
     while (instance->n > 0) {
         VD bestVertex = nullptr;
         int bestValue = -1;
-        for (VD v: MyVertices(*instance->G)) {
+        BGL_FORALL_VERTICES(v, *instance->G, Graph) {
             int wouldbecovered = (*instance->G)[v].cnt_undominated_neighbors;
             if (!(*instance->G)[v].is_dominated) {
                 wouldbecovered++;
