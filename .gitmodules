@@ -1,3 +1,9 @@
 [submodule "instnaces"]
 	path = instances/official
 	url = https://github.com/MarioGrobler/PACE2025-instances.git
+[submodule "playground/c++/ext/scip"]
+	path = playground/c++/ext/scip
+	url = https://github.com/scipopt/scip.git
+[submodule "playground/c++/ext/soplex"]
+	path = playground/c++/ext/soplex
+	url = https://github.com/scipopt/soplex.git
