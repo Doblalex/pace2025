@@ -30,10 +30,22 @@ bool reductionCovered(Instance *instance)
     {
         auto vd = *v;
         ++v;
-        if ((*instance->G)[vd].is_dominated && (boost::out_degree(vd, (*instance->G)) <= 1 || (*instance->G)[vd].cnt_undominated_neighbors == 0))
+        if ((*instance->G)[vd].is_dominated)
         {
-            instance->deleteVertex(vd);
-            reduced = true;
+            if (boost::out_degree(vd, (*instance->G)) == 1)
+            {
+                auto w = *boost::adjacent_vertices(vd, (*instance->G)).first;
+                if ((*instance->G)[w].can_be_dominating_set || (*instance->G)[w].is_dominated)
+                {
+                    instance->deleteVertex(vd);
+                    reduced = true;
+                }
+            }
+            else if ((*instance->G)[vd].cnt_undominated_neighbors == 0)
+            {
+                instance->deleteVertex(vd);
+                reduced = true;
+            }            
         }
     }
     return reduced;
@@ -69,6 +81,7 @@ bool reductionDegree1(Instance *instance, VertexList& dominatingSet)
     }
 
     // reductionCovered(instance); // for sanity. TODO: can probably be removed
+    // if (reduced) debug("Reduction degree 1");
     return reduced;
 }
 
@@ -135,6 +148,7 @@ bool reductionDomination(Instance* instance) {
             is_neighbor[(*instance->G)[w].id] = false;
         }
     }
+    // if (reduced) debug("Reduction dominatino");
     return reduced;
 }
 
@@ -157,7 +171,7 @@ bool reductionTwins(Instance* instance) {
             if (keep != -1) {
                 for (size_t i = 0; i < partitionElement->elements.size(); i++) {
                     if (i != keep) {
-                        VD v2 = instance->props->id_to_vertex[partitionElement->elements[0]];   
+                        VD v2 = instance->props->id_to_vertex[partitionElement->elements[i]];   
                         if (!(*instance->G)[v2].is_dominated) {
                             BGL_FORALL_ADJ_T(v2, w, *instance->G, Graph) {
                                 (*instance->G)[w].cnt_undominated_neighbors--;
@@ -175,6 +189,7 @@ bool reductionTwins(Instance* instance) {
     }
     instance->deleteVertices(toDelete);
     delete partition;
+    // if (reduced) debug("Reduction twins");
     return reduced;
 }
 
@@ -209,8 +224,8 @@ bool reductionByCanBeDominatingSet(Instance* instance, VertexList& dominatingSet
     }
     instance->deleteVertices(toDelete);
 
-    return reduced;
-    
+    // if (reduced) debug("Reduction by can be dominating set");
+    return reduced;    
 }
 
 bool reduceUniversal(Instance* instance, VertexList& dominatingSet) {
