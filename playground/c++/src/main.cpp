@@ -80,7 +80,7 @@ void recursiveReduction(Instance* instance, VertexList& dominatingSet) {
     
     
     debug(instance->CntCanBeDominatingSet(), instance->CntNeedsDomination(), instance->n);
-    solveEvalMaxSat(instance, dominatingSet);
+    solveCPSat(instance, dominatingSet);
     delete instance;
 }
 
@@ -94,8 +94,11 @@ int main(int argc, char** argv) {
     
     debug(instance->n, instance->m);
     VertexList dominatingSet;
-     // It seems very unsafe to do twin reduction rule once there are dominated vertices. 
     recursiveReduction(instance, dominatingSet);    
     debug(dominatingSet.size());
-    cout<<dominatingSet.size()<<endl;
+    #ifndef MYLOCAL
+    for (auto v: dominatingSet) {
+        cout << v << endl;
+    }
+    #endif
 }
