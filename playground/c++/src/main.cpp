@@ -101,7 +101,7 @@ int main(int argc, char** argv) {
     auto runtime = end-start;
     #ifndef MYLOCAL
     cout<<"Solution size: "<<dominatingSet.size()<<endl;
-    // cout<<"Runtime: "<<runtime<<endl;
+    cout<<"Solution time: "<<runtime.count()<<endl;
     for (auto v: dominatingSet) {
         cout << v << endl;
     }

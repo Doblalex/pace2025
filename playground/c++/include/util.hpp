@@ -8,6 +8,9 @@
 #include <string>
 #include <stack>
 #include <map>
+#include <chrono>
+#include <iostream>
+#include <ctime>
 #include <boost/config.hpp>
 #include <boost/graph/connected_components.hpp>
 #include <boost/graph/adjacency_list.hpp>
@@ -59,11 +62,8 @@ void _dbg(const char *sdbg, TH h, TA... t)
     }                         \
     }
 #else
-#define debug(...) (__VA_ARGS__)
+#define debug(...)
 #define debugv(x)
-#define cout \
-    if (0)   \
-    cout
 #endif
 
 #if defined(__GNUC__)
