@@ -98,12 +98,12 @@ int main(int argc, char** argv) {
     debug(dominatingSet.size());
 
     auto end = std::chrono::system_clock::now();
-    auto runtime = end-start;
+    std::chrono::duration<double> runtime = end-start;
     #ifndef MYLOCAL
     cout<<"Solution size: "<<dominatingSet.size()<<endl;
     cout<<"Solution time: "<<runtime.count()<<endl;
-    for (auto v: dominatingSet) {
-        cout << v << endl;
-    }
+    // for (auto v: dominatingSet) {
+    //     cout << v << endl;
+    // }
     #endif
 }
