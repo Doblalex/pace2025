@@ -86,7 +86,7 @@ void recursiveReduction(Instance* instance, VertexList& dominatingSet) {
 
 int main(int argc, char** argv) {
     globalprops* props = new globalprops();
-
+    auto start = std::chrono::system_clock::now();
     auto instance = read_instance(props);
     // VertexList greedysol;
     // Greedy(instance, greedysol);
@@ -96,7 +96,12 @@ int main(int argc, char** argv) {
     VertexList dominatingSet;
     recursiveReduction(instance, dominatingSet);    
     debug(dominatingSet.size());
+
+    auto end = std::chrono::system_clock::now();
+    auto runtime = end-start;
     #ifndef MYLOCAL
+    cout<<"Solution size: "<<dominatingSet.size()<<endl;
+    // cout<<"Runtime: "<<runtime<<endl;
     for (auto v: dominatingSet) {
         cout << v << endl;
     }

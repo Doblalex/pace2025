@@ -25,8 +25,8 @@
 #define all(x) (x).begin(), (x).end()
 #define FORE(itt, x) for (auto itt = (x).begin(); itt != (x).end(); ++itt)
 
-#define MYDEBUG
-#define MYLOCAL
+// #define MYDEBUG
+// #define MYLOCAL
 
 // #ifdef MYDEBUG
 // #undef NDEBUG
