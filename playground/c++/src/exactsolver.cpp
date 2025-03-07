@@ -1,11 +1,16 @@
 #include "exactsolver.hpp"
 // #include "scip/scip.h"
 // #include "scip/scipdefplugins.h"
+#ifdef USE_GUROBI
 #include "gurobi_c++.h"
+#endif
 #include "EvalMaxSAT.h"
+#ifdef USE_ORTOOLS
 #include "ortools/linear_solver/linear_expr.h"
 #include "ortools/linear_solver/linear_solver.h"
+#endif
 
+#ifdef USE_GUROBI
 void solveGurobiExactIlp(Instance* instance, VertexList& dominatingSet) {
     GRBEnv env;
     GRBModel model(env);
@@ -54,6 +59,7 @@ void solveGurobiExactIlp(Instance* instance, VertexList& dominatingSet) {
 
     model.optimize();
 }
+#endif
 
 void solveEvalMaxSat(Instance* instance, VertexList& dominatingSet){
 
@@ -99,6 +105,7 @@ void solveEvalMaxSat(Instance* instance, VertexList& dominatingSet){
     }
 }
 
+#ifdef USE_ORTOOLS
 void solveCPSat(Instance* instance, VertexList& dominatingSet) {
     using namespace operations_research;
     debug("Solving ILP witn number of nodes", instance->n);
@@ -153,6 +160,7 @@ void solveCPSat(Instance* instance, VertexList& dominatingSet) {
         }
     }
 }
+#endif
 
 // SCIP_RETCODE solveScip(Instance* instance, VertexList& dominatingSet) {
 //     SCIP *scip = nullptr;

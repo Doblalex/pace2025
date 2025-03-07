@@ -52,36 +52,47 @@ include_directories(${ZLIB_INCLUDE_DIR})
 
 include_directories(${PROJECT_SOURCE_DIR}/EvalMaxSAT)
 target_link_libraries(dsexact ${localLibs} ${externLibs})
-
+include_directories(${PROJECT_SOURCE_DIR}/include)
 # GUROBI -------------------------------------------------------------------
-list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/modules")
-find_package(GUROBI REQUIRED)
+set(USE_GUROBI OFF)
 
-include_directories(${PROJECT_SOURCE_DIR}/include ${GUROBI_INCLUDE_DIRS})
-if(CXX)
-  target_link_libraries(dsexact optimized ${GUROBI_CXX_LIBRARY}
-    debug ${GUROBI_CXX_DEBUG_LIBRARY})
+if(USE_GUROBI)
+  add_compile_definitions(USE_GUROBI)
+  list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/modules")
+  find_package(GUROBI REQUIRED)
+
+  include_directories(${GUROBI_INCLUDE_DIRS})
+  if(CXX)
+    target_link_libraries(dsexact optimized ${GUROBI_CXX_LIBRARY}
+      debug ${GUROBI_CXX_DEBUG_LIBRARY})
+  endif()
+  target_link_libraries(dsexact ${GUROBI_LIBRARY})
 endif()
-target_link_libraries(dsexact ${GUROBI_LIBRARY})
 
 # OR-TOOLS -----------------------------------------------------------------
-set(BUILD_DEPS ON)
-set(BUILD_DOC OFF)
-set(BUILD_FLATZINC OFF)
-set(BUILD_SAMPLES OFF)
-set(BUILD_EXAMPLES OFF)
-set(USE_HIGHS OFF)
-set(USE_SCIP OFF)
-set(USE_COINOR OFF)
-set(USE_GLPK OFF)
-set(USE_CPLEX OFF)
-set(USE_DOTNET_6 OFF)
-list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/ext/or-tools/cmake")
-add_subdirectory("${PROJECT_SOURCE_DIR}/ext/or-tools")
+set(USE_ORTOOLS OFF)
 
-include_directories(${PROJECT_SOURCE_DIR}/ext/or-tools/ortools)
 
-target_link_libraries(dsexact ortools::ortools)
+if(USE_ORTOOLS)
+  add_compile_definitions(USE_ORTOOLS)
+  set(BUILD_DEPS ON)
+  set(BUILD_DOC OFF)
+  set(BUILD_FLATZINC OFF)
+  set(BUILD_SAMPLES OFF)
+  set(BUILD_EXAMPLES OFF)
+  set(USE_HIGHS OFF)
+  set(USE_SCIP OFF)
+  set(USE_COINOR OFF)
+  set(USE_GLPK OFF)
+  set(USE_CPLEX OFF)
+  set(USE_DOTNET_6 OFF)
+  list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/ext/or-tools/cmake")
+  add_subdirectory("${PROJECT_SOURCE_DIR}/ext/or-tools")
+
+  include_directories(${PROJECT_SOURCE_DIR}/ext/or-tools/ortools)
+
+  target_link_libraries(dsexact ortools::ortools)
+endif()
 
 # SCIP ---------------------------------------------------------------------
 
