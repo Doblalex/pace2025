@@ -1,5 +1,4 @@
 cmake_minimum_required(VERSION 3.18)
-set(CMAKE_CXX_COMPILER g++)
 
 project(Pace2025)
 
@@ -25,7 +24,6 @@ set(SOURCES
   src/heuristics.cpp
   src/exactsolver.cpp
 )
-
 
 add_executable(dsexact ${SOURCES})
 
@@ -70,7 +68,7 @@ if(USE_GUROBI)
 endif()
 
 # OR-TOOLS -----------------------------------------------------------------
-set(USE_ORTOOLS OFF)
+set(USE_ORTOOLS ON)
 
 
 if(USE_ORTOOLS)

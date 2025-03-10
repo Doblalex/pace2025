@@ -80,7 +80,11 @@ void recursiveReduction(Instance* instance, VertexList& dominatingSet) {
     
     
     debug(instance->CntCanBeDominatingSet(), instance->CntNeedsDomination(), instance->n);
+    #ifdef USE_ORTOOLS
+    solveCPSat(instance, dominatingSet);
+    #else
     solveEvalMaxSat(instance, dominatingSet);
+    #endif
     delete instance;
 }
 
