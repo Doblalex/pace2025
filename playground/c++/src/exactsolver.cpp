@@ -149,6 +149,7 @@ void solveCPSat(Instance* instance, VertexList& dominatingSet) {
     }
     // solver->EnableOutput();
     solver->SetNumThreads(1);
+    solver->EnableOutput();
     const MPSolver::ResultStatus result_status = solver->Solve();
     // bool solved = solver.solve();
     // debug(solved);

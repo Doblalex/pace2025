@@ -72,51 +72,29 @@ set(USE_ORTOOLS ON)
 
 
 if(USE_ORTOOLS)
+  find_package(ortools)
   add_compile_definitions(USE_ORTOOLS)
-  set(BUILD_DEPS ON)
-  set(BUILD_DOC OFF)
-  set(BUILD_FLATZINC OFF)
-  set(BUILD_SAMPLES OFF)
-  set(BUILD_EXAMPLES OFF)
-  set(USE_HIGHS OFF)
-  set(USE_SCIP OFF)
-  set(USE_COINOR OFF)
-  set(USE_GLPK OFF)
-  set(USE_CPLEX OFF)
-  set(USE_DOTNET_6 OFF)
-  list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/ext/or-tools/cmake")
-  add_subdirectory("${PROJECT_SOURCE_DIR}/ext/or-tools")
+  IF(${ortools_FOUND})
+    message(STATUS "ortools found")
+  ELSE()
+    set(BUILD_DEPS ON)
+    set(BUILD_DOC OFF)
+    set(BUILD_FLATZINC OFF)
+    set(BUILD_SAMPLES OFF)
+    set(BUILD_EXAMPLES OFF)
+    set(USE_HIGHS OFF)
+    set(USE_SCIP OFF)
+    set(USE_COINOR OFF)
+    set(USE_GLPK OFF)
+    set(USE_CPLEX OFF)
+    set(USE_DOTNET_6 OFF)
+    list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/ext/or-tools/cmake")
+    add_subdirectory("${PROJECT_SOURCE_DIR}/ext/or-tools")
 
-  include_directories(${PROJECT_SOURCE_DIR}/ext/or-tools/ortools)
-
+    include_directories(${PROJECT_SOURCE_DIR}/ext/or-tools/ortools)
+  endif()
   target_link_libraries(dsexact ortools::ortools)
 endif()
-
-# SCIP ---------------------------------------------------------------------
-
-# set(IPOPT off)
-# set(WORHP off)
-# set(ZIMPL off)
-# set(READLINE off)
-# set(SOPLEX_DIR ${CMAKE_BINARY_DIR})
-# set(SCIP_DIR ${CMAKE_BINARY_DIR})
-# set(PAPILO off)
-# set(SHARED off)
-# add_subdirectory(${PROJECT_SOURCE_DIR}/ext/soplex)
-# add_subdirectory(${PROJECT_SOURCE_DIR}/ext/scip)
-# find_package(SCIP REQUIRED)
-
-# include_directories(${SCIP_INCLUDE_DIRS})
-
-# find_library(LIBM m)
-
-# if(NOT LIBM)
-#   set(LIBM "")
-# endif()
-# target_link_libraries(dsexact ${SCIP_LIBRARIES} ${LIBM})
-# ---------------------------------------------------------------------
-
-
 
 
 
