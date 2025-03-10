@@ -2,14 +2,6 @@
 	path = instances/official
 	url = https://github.com/MarioGrobler/PACE2025-instances.git
 	shallow = true
-[submodule "scip"]
-	path = playground/c++/ext/scip
-	url = https://github.com/scipopt/scip.git
-	shallow = true
-[submodule "soplex"]
-	path = playground/c++/ext/soplex
-	url = https://github.com/scipopt/soplex.git
-	shallow = true
 [submodule "evalmaxsat"]
 	path = playground/c++/ext/EvalMaxSAT
 	url = https://github.com/FlorentAvellaneda/EvalMaxSAT.git
