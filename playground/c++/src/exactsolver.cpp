@@ -93,7 +93,7 @@ void solveEvalMaxSat(Instance* instance, VertexList& dominatingSet){
         }
         solver.addClause(clause); //hard clause
     }
-
+    solver.setTargetComputationTime(10*60);
     bool solved = solver.solve();
     debug(solved);
     BGL_FORALL_VERTICES(v, *instance->G, Graph) {

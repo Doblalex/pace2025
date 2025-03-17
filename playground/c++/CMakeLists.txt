@@ -68,7 +68,7 @@ if(USE_GUROBI)
 endif()
 
 # OR-TOOLS -----------------------------------------------------------------
-set(USE_ORTOOLS ON)
+set(USE_ORTOOLS OFF)
 
 
 if(USE_ORTOOLS)
