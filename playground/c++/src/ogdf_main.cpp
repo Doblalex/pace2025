@@ -1,28 +1,48 @@
 #include <chrono>
 #include <unordered_set>
-#include <boost/graph/iteration_macros.hpp>
 
 #include "ogdf/basic/Graph_d.h"
 #include "ogdf/basic/GraphSets.h"
 #include "ogdf/decomposition/BCTree.h"
 #include "ogdf/basic/GraphAttributes.h"
-#include "ogdf/cluster/sync_plan/utils/Logging.h"
 #include "ogdf/energybased/FMMMLayout.h"
 #include "ogdf/fileformats/GraphIO.h"
 #include "ogdf/layered/SugiyamaLayout.h"
 
+ogdf::Logger logger;
+
+#ifdef OGDF_DEBUG
+#define log if (true) logger.lout()
+#else
+#define log if (false) logger.lout()
+#endif
+
+#define forAllOutAdj(v, adj) \
+    OGDF_ASSERT((v)->outdeg() == 0 || (v)->adjEntries.head()->isSource()); \
+    for (auto adj_it = (v)->adjEntries.begin(); adj_it != (v)->adjEntries.end() && (*adj_it)->isSource();) { \
+        auto adj = *adj_it; \
+        ++adj_it;
+
+#define forAllInAdj(v, adj) \
+    OGDF_ASSERT((v)->indeg() == 0 || !(v)->adjEntries.tail()->isSource()); \
+    for (auto adj_it = (v)->adjEntries.rbegin(); adj_it != (v)->adjEntries.rend() && !(*adj_it)->isSource();) { \
+        auto adj = *adj_it; \
+        ++adj_it;
+
 struct Instance {
     ogdf::Graph G;
-    // std::vector<ogdf::node> nodes; // TODO needed?
+    // std::vector<ogdf::node> ID2node;
+    ogdf::NodeArray<int> node2ID;
 
     std::vector<int> DS;
     ogdf::NodeArray<bool> is_dominated;
-    ogdf::NodeArray<bool> can_be_DS;
-    ogdf::NodeArray<int> undom_neighs;
+    ogdf::NodeArray<bool> is_subsumed;
+    ogdf::EdgeArray<ogdf::edge> reverse_edge;
 
-    Instance() : is_dominated(G, false),
-                 can_be_DS(G, true),
-                 undom_neighs(G, -1) {
+    Instance() : node2ID(G, -1),
+                 is_dominated(G, false),
+                 is_subsumed(G, false),
+                 reverse_edge(G, nullptr) {
     }
 
     OGDF_NO_COPY(Instance)
@@ -30,10 +50,11 @@ struct Instance {
 
     void clear() {
         G.clear();
-        // nodes.clear();
+        DS.clear();
+        node2ID.init(G, -1);
         is_dominated.init(G, false);
-        can_be_DS.init(G, true);
-        undom_neighs.init(G, -1);
+        is_subsumed.init(G, false);
+        reverse_edge.init(G, nullptr);
     }
 
     void read(std::istream &is) {
@@ -48,12 +69,14 @@ struct Instance {
         OGDF_ASSERT(s == "ds");
         iss >> n >> m;
 
-        G.clear();
-        std::vector<ogdf::node> nodes; // nodes.clear();
-        nodes.reserve(n + 1);
-        nodes.push_back(nullptr);
+        clear();
+        std::vector<ogdf::node> ID2node; // ID2node.clear();
+        ID2node.reserve(n + 1);
+        ID2node.push_back(nullptr);
         for (int i = 1; i <= n; i++) {
-            nodes.push_back(G.newNode(i));
+            auto n = G.newNode(i);
+            ID2node.push_back(n);
+            node2ID[n] = i;
         }
         for (int i = 0; i < m; i++) {
             getline(is, line);
@@ -61,13 +84,14 @@ struct Instance {
             int u, v;
             std::istringstream iss(line);
             iss >> u >> v;
-            G.newEdge(nodes[u], nodes[v]);
-        }
-        for (ogdf::node n : G.nodes) {
-            undom_neighs[n] = n->degree();
+            // sources front, targets tail
+            auto e = G.newEdge(ID2node[u], ogdf::Direction::before, ID2node[v], ogdf::Direction::after);
+            auto f = G.newEdge(ID2node[v], ogdf::Direction::before, ID2node[u], ogdf::Direction::after);
+            reverse_edge[e] = f;
+            reverse_edge[f] = e;
         }
         OGDF_ASSERT(G.numberOfNodes() == n);
-        OGDF_ASSERT(G.numberOfEdges() == m);
+        OGDF_ASSERT(G.numberOfEdges() == m * 2);
     }
 
     void dumpBCTree() {
@@ -95,162 +119,124 @@ struct Instance {
 
     void safeDelete(ogdf::node n, ogdf::Graph::node_iterator &it) {
         if (*it == n) ++it; // no need to check for end, as *end == nullptr
-        // nodes[n->index()] = nullptr;
+        safeDelete(n);
+    }
+
+    void safeDelete(ogdf::node n) {
+        // ID2node[node2ID[n]] = nullptr;
         G.delNode(n);
+        G.consistencyCheck();
+    }
+
+    void safeDelete(ogdf::edge e) {
+        ogdf::edge r = reverse_edge[e];
+        if (r != nullptr) {
+            OGDF_ASSERT(reverse_edge[r] == e);
+            reverse_edge[r] = nullptr;
+        }
+        G.delEdge(e);
     }
 
     void addToDominatingSet(ogdf::node v, ogdf::Graph::node_iterator &it) {
-        OGDF_ASSERT(can_be_DS[v]);
-        std::unordered_set<ogdf::node> to_delete;
-        to_delete.emplace(v);
-        DS.push_back(v->index());
-        for (auto adj : v->adjEntries) {
-            auto vd = adj->twinNode();
-
-            if (!is_dominated[v]) {
-                // v is now dominating itself
-                --undom_neighs[vd];
-            }
-
-            if (!is_dominated[vd]) {
-                for (auto adj2 : vd->adjEntries) {
-                    auto vd2 = adj2->twinNode();
-                    --undom_neighs[vd2]; // vd is now dominated by v
-
-                    // shortcut "covered" rule:
-                    if (undom_neighs[vd2] == 0 && is_dominated[vd2]) {
-                        to_delete.emplace(vd2);
-                    }
-                }
-            }
-            is_dominated[vd] = true;
-
-            // shortcut "covered" rule:
-            if (undom_neighs[vd] == 0) {
-                to_delete.emplace(vd);
+        OGDF_ASSERT(!is_subsumed[v]);
+        DS.push_back(node2ID[v]);
+        forAllOutAdj(v, adj)
+            auto u = adj->twinNode();
+            markDominated(u);
+            if (u->outdeg() == 0) {
+                safeDelete(u, it);
             }
         }
-        for (auto n : to_delete) {
-            safeDelete(n, it);
-        }
+        safeDelete(v, it);
     }
 
-    bool reductionIsolatedAntennaCoveredUniversal(bool only_linear = false) {
-        bool reduced = false;
-        bool has_undom = false;
-        ogdf::node universal = nullptr;
+    void markDominated(ogdf::node v) {
+        is_dominated[v] = true;
+        forAllInAdj(v, adj)
+            safeDelete(adj->theEdge());
+            // TODO shortcut some rules?
+        }
+        // G.consistencyCheck();
+    }
+
+    void markSubsumed(ogdf::node v) {
+        is_subsumed[v] = true;
+        forAllOutAdj(v, adj)
+            safeDelete(adj->theEdge());
+            // TODO shortcut some rules?
+        }
+        // G.consistencyCheck();
+    }
+
+    bool reductionExtremeDegrees() {
+        bool reduced = false, has_undom = false;
+        ogdf::node universal_in = nullptr;
         int i = G.numberOfNodes();
         for (auto it = G.nodes.begin(); it != G.nodes.end(); --i) {
-            OGDF_ASSERT(i>=0); // protect against endless loops
+            OGDF_ASSERT(i >= 0); // protect against endless loops
             auto n = *it;
             ++it; // increment now so that we can safely delete n
 
+            OGDF_ASSERT(!is_dominated[n] || n->indeg() == 0);
+            OGDF_ASSERT(!is_subsumed[n] || n->outdeg() == 0);
+            OGDF_ASSERT(!is_subsumed[n] || n->indeg() > 0 || is_dominated[n]);
+
             // isolated
-            if (n->degree() == 0) {
-                if (!is_dominated[n]) {
-                    DS.push_back(n->index());
-                }
+            if (n->indeg() == 0 && !is_dominated[n]) {
+                addToDominatingSet(n, it);
+                reduced = true;
+                continue;
+            }
+            if (n->outdeg() == 0 && is_dominated[n]) {
                 safeDelete(n, it);
                 reduced = true;
                 continue;
             }
 
             // antenna
-            if (n->degree() == 1) {
+            if (n->indeg() == 1 && (n->outdeg() == 0 ||
+                (n->outdeg() == 1 && n->adjEntries.head()->twinNode() == n->adjEntries.tail()->twinNode()))) {
                 auto u = n->adjEntries.head()->twinNode();
                 OGDF_ASSERT(u!=n);
-
-                if (is_dominated[n]) {
-                    if (is_dominated[u] || can_be_DS[u]) {
-                        safeDelete(n, it);
-                        reduced = true;
-                        continue;
-                    } else {
-                        // we might need n to dominate u, but there might also be better choices
-                        // TODO only delete if we have another neighbor?
-                    }
+                addToDominatingSet(u, it);
+                reduced = true;
+                continue;
+            }
+            if (n->outdeg() == 1 && is_dominated[n]) {
+                OGDF_ASSERT(n->adjEntries.head()->isSource());
+                auto u = n->adjEntries.head()->twinNode();
+                if (!is_subsumed[u] || u->indeg() >= 2) {
+                    safeDelete(n, it);
                 } else {
-                    if (!only_linear) {
-                        if (can_be_DS[u]) {
-                            addToDominatingSet(u, it);
-                            reduced = true;
-                            continue;
-                        } else {
-                            addToDominatingSet(n, it);
-                            reduced = true;
-                            continue;
-                        }
-                    }
+                    addToDominatingSet(n, it);
                 }
+                reduced = true;
+                continue;
             }
 
-            if (is_dominated[n]) {
-                // already fully covered
-                if (undom_neighs[n] == 0) {
-                    safeDelete(n, it);
-                    reduced = true;
-                    continue;
-                }
-                // cannot and needs not be in DS
-                if (!can_be_DS[n]) {
-                    safeDelete(n, it);
-                    reduced = true;
-                    continue;
-                }
-            } else {
-                // no neighbor can be in DS
-                if (can_be_DS[n] && !only_linear) {
-                    bool must_be_DS = true;
-                    for (auto adj : n->adjEntries) {
-                        if (can_be_DS[adj->twinNode()]) {
-                            must_be_DS = false;
-                            break;
-                        }
-                    }
-                    if (must_be_DS) {
-                        addToDominatingSet(n, it);
-                        reduced = true;
-                        continue;
-                    }
-                }
+            // universal
+            if (n->outdeg() == G.numberOfNodes() - 1) {
+                addToDominatingSet(n, it);
+                G.clear();
+                return true;
             }
-
-            // checks for universal
-            if (!has_undom && !is_dominated[n]) {
+            if (n->indeg() == G.numberOfNodes() - 1) {
+                universal_in = n;
+            } else if (!has_undom && !is_dominated[n]) {
                 has_undom = true;
             }
-            if (n->degree() == G.numberOfNodes() - 1) {
-                universal = n;
-            }
-
-            // consistency checks
-#ifdef OGDF_DEBUG
-            int exp_undom_neighs = 0;
-            bool neigh_maybe_dominating = false;
-            for (auto adj : n->adjEntries) {
-                if (!is_dominated[adj->twinNode()]) {
-                    ++exp_undom_neighs;
-                }
-                if (!neigh_maybe_dominating && can_be_DS[adj->twinNode()]) {
-                    neigh_maybe_dominating = true;
-                }
-            }
-            if (!is_dominated[n] && !can_be_DS[n]) {
-                OGDF_ASSERT(neigh_maybe_dominating);
-            }
-            OGDF_ASSERT(exp_undom_neighs == undom_neighs[n]);
-#endif
         }
 
-        // trivially done cases (no undominated or one universal to dominate them all)
-        if (has_undom) {
-            if (universal != nullptr) {
-                DS.push_back(universal->index());
-                // TODO we're done
+        if (universal_in != nullptr) {
+            auto it = G.nodes.end();
+            if (has_undom) {
+                safeDelete(universal_in, it);
+            } else {
+                addToDominatingSet(universal_in, it);
             }
-        } else {
-            // TODO we're done
+            reduced = true;
         }
+
         return reduced;
     }
 
@@ -258,31 +244,19 @@ struct Instance {
         ogdf::Graph::CCsInfo CC(G);
         std::list<Instance> instances;
         if (CC.numberOfCCs() > 1) {
-            // instances.reserve(CC.numberOfCCs());
+            ogdf::NodeArray<ogdf::node> nMap(G, nullptr); // can safely be reused for different CCs
+            ogdf::EdgeArray<ogdf::edge> eMap(G, nullptr);
             for (int i = 0; i < CC.numberOfCCs(); ++i) {
                 instances.emplace_back();
                 Instance &I = instances.back();
-                ogdf::NodeArray<ogdf::node> nMap(G, nullptr);
-                ogdf::EdgeArray<ogdf::edge> eMap(G, nullptr);
-                I.G.insert(CC, i, nMap, eMap); // would be easier, but we need to keep node ID. ToDo:
-                // m_regNodeArrays.reserveSpace(info.numberOfNodes(cc));
-                // m_regEdgeArrays.reserveSpace(info.numberOfEdges(cc));
-                // auto count = I.G.insert<ogdf::Array<ogdf::node>::const_iterator, std::function<bool(ogdf::edge)>, true>(
-                //     CC.nodes(i).begin(),
-                //     CC.nodes(i).end(),
-                //     ogdf::filter_any_edge,
-                //     nMap,
-                //     eMap);
-                // OGDF_ASSERT(count.first == CC.numberOfNodes(i));
-                // OGDF_ASSERT(count.second == CC.numberOfEdges(i));
-
-                // I.nodes.resize(nodes.size(), nullptr);
+                I.G.insert(CC, i, nMap, eMap);
                 for (auto n : CC.nodes(i)) {
-                    // OGDF_ASSERT(n->index() == nMap[n]->index());
-                    // I.nodes[n->index()] = nMap[n];
+                    I.node2ID[nMap[n]] = node2ID[n];
                     I.is_dominated[nMap[n]] = is_dominated[n];
-                    I.can_be_DS[nMap[n]] = can_be_DS[n];
-                    I.undom_neighs[nMap[n]] = undom_neighs[n];
+                    I.is_subsumed[nMap[n]] = is_subsumed[n];
+                }
+                for (auto e : CC.edges(i)) {
+                    I.reverse_edge[eMap[e]] = reverse_edge[e] != nullptr ? eMap[reverse_edge[e]] : nullptr;
                 }
             }
         }
@@ -297,23 +271,24 @@ void reduceAndSolve(Instance &I, int d = 0) {
         n = I.G.numberOfNodes();
         m = I.G.numberOfEdges();
         changed = false;
-        std::cout << "\n\nReduce iteration " << i << " depth " << d << ": " << n << " nodes, " << m << " edges" <<
-            std::endl;
+        log << "Reduce iteration " << i << " depth " << d << ": " << n << " nodes, " << m << " edges" << std::endl;
 
-        if (I.reductionIsolatedAntennaCoveredUniversal(true)) changed = true;
+        // this reduction is so cheap, make sure we really have no isolated vertices before decomposing components
+        while (I.reductionExtremeDegrees()) changed = true;
         // TODO reductionTwins(instance)
 
         std::list<Instance> comps = I.decomposeConnectedComponents();
         if (!comps.empty()) {
+            log << comps.size() << " connected components" << std::endl;
             I.clear(); // save some memory
 
             int c = 0;
             for (auto &comp : comps) {
-                std::cout << "\n\nConnected component " << c << std::endl;
+                log << "Connected component " << c << std::endl;
+                ogdf::Logger::Indent _(logger);
                 ++c;
 
                 // run remaining reduction rules on all components
-                comp.reductionIsolatedAntennaCoveredUniversal(false);
                 // TODO reductionDomination(instance)
                 // TODO reductionDominationPaper(instance, dominatingSet))
 
@@ -324,7 +299,6 @@ void reduceAndSolve(Instance &I, int d = 0) {
             return;
         }
 
-        if (I.reductionIsolatedAntennaCoveredUniversal(false)) changed = true;
         // TODO reductionDomination(instance)
         // TODO reductionDominationPaper(instance, dominatingSet))
 
@@ -339,7 +313,7 @@ void reduceAndSolve(Instance &I, int d = 0) {
     // now to solving...
     I.dumpBCTree();
     // TODO:
-    //     debug(instance->CntCanBeDominatingSet(), instance->CntNeedsDomination(), instance->n);
+    // debug(instance->CntCanBeDominatingSet(), instance->CntNeedsDomination(), instance->n);
     // #ifdef USE_ORTOOLS
     //     solveCPSat(instance, dominatingSet);
     // #else
