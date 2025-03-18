@@ -97,10 +97,26 @@ if(USE_ORTOOLS)
 endif()
 
 
+# OGDF -----------------------------------------------------------------
+set(USE_OGDF ON)
 
 
+if(USE_OGDF)
+  find_package(OGDF)
+  add_compile_definitions(USE_OGDF)
+  IF(${OGDF_FOUND})
+    message(STATUS "OGDF found")
+  ELSE()
+    set(OGDF_MEMORY_MANAGER POOL_NTS)
+    # CMAKE_BUILD_TYPE=Release
+    # BUILD_SHARED_LIBS=OFF
+    # CMAKE_INTERPROCEDURAL_OPTIMIZATION=TRUE
+    # CMAKE_POLICY_DEFAULT_CMP0069=NEW
+    # OGDF_USE_ASSERT_EXCEPTIONS=OFF
+    list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/ext/ogdf/cmake")
+    add_subdirectory("${PROJECT_SOURCE_DIR}/ext/ogdf")
 
-
-
-
-
+    include_directories(${PROJECT_SOURCE_DIR}/ext/ogdf/include)
+  endif()
+  target_link_libraries(dsexact OGDF)
+endif()

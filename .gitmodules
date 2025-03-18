@@ -10,3 +10,6 @@
 	path = playground/c++/ext/or-tools
 	url = https://github.com/google/or-tools.git
 	shallow = true
+[submodule "playground/c++/ext/ogdf"]
+	path = playground/c++/ext/ogdf
+	url = https://github.com/ogdf/ogdf.git
