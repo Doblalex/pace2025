@@ -26,6 +26,7 @@ set(SOURCES
 )
 
 add_executable(dsexact ${SOURCES})
+add_executable(ogdf_dsexact src/ogdf_main.cpp)
 
 # EVALMAXSAT ---------------------------------------------------------------
 set(localLibs
@@ -49,7 +50,7 @@ find_package(ZLIB)
 include_directories(${ZLIB_INCLUDE_DIR})
 
 include_directories(${PROJECT_SOURCE_DIR}/EvalMaxSAT)
-target_link_libraries(dsexact ${localLibs} ${externLibs})
+target_link_libraries(ogdf_dsexact ${localLibs} ${externLibs})
 include_directories(${PROJECT_SOURCE_DIR}/include)
 # GUROBI -------------------------------------------------------------------
 set(USE_GUROBI OFF)
@@ -119,4 +120,5 @@ if(USE_OGDF)
     include_directories(${PROJECT_SOURCE_DIR}/ext/ogdf/include)
   endif()
   target_link_libraries(dsexact OGDF)
+  target_link_libraries(ogdf_dsexact OGDF)
 endif()
