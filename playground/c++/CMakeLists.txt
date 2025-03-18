@@ -26,7 +26,7 @@ set(SOURCES
 )
 
 add_executable(dsexact ${SOURCES})
-add_executable(ogdf_dsexact src/ogdf_main.cpp)
+add_executable(ogdf_dsexact src/ogdf_main.cpp src/ogdf_solver.cpp)
 
 # EVALMAXSAT ---------------------------------------------------------------
 set(localLibs
