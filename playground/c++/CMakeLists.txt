@@ -7,6 +7,9 @@ option(CXX "enable C++ compilation" ON)
 # set(CMAKE_CXX_FLAGS_DEBUG "-g")
 # set(CMAKE_CXX_FLAGS_RELEASE "-O3")
 
+set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+set(CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
+
 if(CXX)
     set (CMAKE_CXX_STANDARD 17)
     enable_language(CXX)
