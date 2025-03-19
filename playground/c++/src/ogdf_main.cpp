@@ -92,7 +92,7 @@ void Instance::dumpBCTree() {
         nMap.fillWithDefault();
         eMap.fillWithDefault();
         ogdf::Graph B;
-        BA.init(G, ogdf::GraphAttributes::nodeLabel);
+        BA.init(B, ogdf::GraphAttributes::nodeLabel);
         B.insert(nodes, BC.hEdges(node), nMap, eMap);
         for (auto n : nodes) {
             BA.label(nMap[n]) = node2ID[BC.original(n)];
@@ -164,13 +164,8 @@ bool Instance::reductionExtremeDegrees() {
     for (auto it = G.nodes.begin(); it != G.nodes.end(); --i) {
         OGDF_ASSERT(i >= 0); // protect against endless loops
         auto n = *it;
+        OGDF_ASSERT(checkNode(n));
         ++it; // increment now so that we can safely delete n
-
-        OGDF_ASSERT(!is_dominated[n] || n->indeg() == 0);
-        OGDF_ASSERT(!is_subsumed[n] || n->outdeg() == 0);
-        OGDF_ASSERT(!is_subsumed[n] || n->indeg() > 0 || is_dominated[n]);
-        OGDF_ASSERT(n->outdeg() == 0 || n->adjEntries.head()->isSource());
-        OGDF_ASSERT(n->indeg() == 0 || !n->adjEntries.tail()->isSource());
 
         // isolated
         if (n->indeg() == 0 && !is_dominated[n]) {
@@ -188,8 +183,12 @@ bool Instance::reductionExtremeDegrees() {
         if (n->indeg() == 1 && (n->outdeg() == 0 ||
             (n->outdeg() == 1 && n->adjEntries.head()->twinNode() == n->adjEntries.tail()->twinNode()))) {
             auto u = n->adjEntries.head()->twinNode();
-            OGDF_ASSERT(u!=n);
+            OGDF_ASSERT(u != n);
             addToDominatingSet(u, it);
+            // XXX here we are deleting another vertex than n
+            if (u == universal_in) {
+                universal_in = nullptr;
+            }
             reduced = true;
             continue;
         }
@@ -219,6 +218,8 @@ bool Instance::reductionExtremeDegrees() {
     }
 
     if (universal_in != nullptr) {
+        // XXX we need to make sure that the processing of any later vertex hasn't accidentally also deleted universal_in,
+        // so all reduction short-cuts for mark*/addToDS functions are turned off for now
         if (has_undom) {
             safeDelete(universal_in);
         } else {
@@ -268,6 +269,7 @@ bool Instance::reductionBCTree() {
             auto n = todo.back();
             todo.pop_back();
             ogdf::node p = BC.parent(n);
+            if (p == nullptr) continue;
 
             subtree_size[p] += subtree_size[n];
             subtrees_seen[p] += 1;
@@ -276,6 +278,24 @@ bool Instance::reductionBCTree() {
             }
         }
     }
+    const auto original_n = [&BC](ogdf::node n) {
+        OGDF_ASSERT(n->graphOf() == &BC.auxiliaryGraph());
+        auto on = BC.original(n);
+        OGDF_ASSERT(on->graphOf() == &BC.originalGraph());
+        return on;
+    };
+    const auto original_e = [&BC](ogdf::edge n) {
+        OGDF_ASSERT(n->graphOf() == &BC.auxiliaryGraph());
+        auto on = BC.original(n);
+        OGDF_ASSERT(on->graphOf() == &BC.originalGraph());
+        return on;
+    };
+    const auto copy_e = [&BC](ogdf::edge n) {
+        OGDF_ASSERT(n->graphOf() == &BC.originalGraph());
+        auto cn = BC.rep(n);
+        OGDF_ASSERT(cn->graphOf() == &BC.auxiliaryGraph());
+        return cn;
+    };
 
     ogdf::NodeSet<> nodes(BC.auxiliaryGraph());
     ogdf::NodeArray<ogdf::node> nMap1(BC.auxiliaryGraph(), nullptr);
@@ -301,87 +321,139 @@ bool Instance::reductionBCTree() {
             } else {
                 h_cv = BC.hRefNode(node);
             }
-            OGDF_ASSERT(parent!=nullptr);
+            OGDF_ASSERT(parent != nullptr);
+            OGDF_ASSERT(BC.typeOfBNode(parent) == ogdf::BCTree::BNodeType::CComp);
             OGDF_ASSERT(h_cv != nullptr);
-            OGDF_ASSERT(nodes.isMember(h_cv));
             ogdf::node cv = BC.original(h_cv);
+            OGDF_ASSERT(BC.bcproper(cv) == parent);
 
             if (replaced[parent]) continue;
-            log << "Processing leaf block with " << BC.numberOfNodes(node) << " nodes." << std::endl;
+#ifdef OGDF_DEBUG
+            log << "Processing " << (is_root ? "root " : "") << "leaf block " << node << " with "
+                << BC.numberOfNodes(node) << " nodes and " << (is_root ? "single child " : "parent ")
+                << parent << "." << std::endl;
+            auto &l = logger.lout() << "CV " << cv << " has BC " << parent << " with parent "
+                << BC.parent(parent) << "(" << BC.numberOfEdges(BC.parent(parent)) << ")" << " and children";
+            for (auto adj : parent->adjEntries) {
+                if (!adj->isSource()) l << " " << adj->twinNode() << "(" << BC.numberOfEdges(adj->twinNode()) << ")";
+            }
+            l << std::endl;
+#endif
 
             nodes.clear();
             for (auto e : BC.hEdges(node)) {
                 nodes.insert(e->source());
                 nodes.insert(e->target());
             }
+#ifdef OGDF_DEBUG
+            OGDF_ASSERT(nodes.isMember(h_cv));
+            for (auto n : nodes) {
+                checkNode(BC.original(n));
+            }
+#endif
 
+            // TODO what if cv already dominated / subsumed?
             Instance I1;
             nMap1.fillWithDefault();
             eMap1.fillWithDefault();
             I1.G.insert(nodes, BC.hEdges(node), nMap1, eMap1);
-            I1.initFrom(
-                *this,
-                nodes,
-                BC.hEdges(node),
-                nMap1,
-                eMap1,
-                [&BC](ogdf::node n) { return BC.original(n); },
-                [&BC](ogdf::edge n) { return BC.original(n); },
-                [&BC](ogdf::edge n) { return BC.rep(n); }
-            );
+            I1.initFrom(*this, nodes, BC.hEdges(node), nMap1, eMap1, original_n, original_e, copy_e);
 
-            Instance I2;
-            nMap2.fillWithDefault();
-            eMap2.fillWithDefault();
-            I2.G.insert(nodes, BC.hEdges(node), nMap2, eMap2);
-            I2.initFrom(
-                *this,
-                nodes,
-                BC.hEdges(node),
-                nMap2,
-                eMap2,
-                [&BC](ogdf::node n) { return BC.original(n); },
-                [&BC](ogdf::edge n) { return BC.original(n); },
-                [&BC](ogdf::edge n) { return BC.rep(n); });
-
-            log << "Solving I1 with dominated CV." << std::endl; {
+            log << "I1: Computing normal ds(B)." << std::endl; //
+            {
                 ogdf::Logger::Indent _(logger);
-                I1.markDominated(nMap1[h_cv]);
                 reduceAndSolve(I1, 100);
             }
 
-            log << "Solving I2 with CV added to DS." << std::endl; {
-                ogdf::Logger::Indent _(logger);
-                I2.addToDominatingSet(nMap2[h_cv]);
-                reduceAndSolve(I2, 200);
+            auto fixDSwithCV = [this,cv,&nodes,&BC](const std::vector<int> &otherDS) {
+                for (auto hn : nodes) {
+                    auto n = BC.original(hn);
+                    if (n != cv) {
+                        safeDelete(n);
+                    }
+                }
+
+                auto cv_id = node2ID[cv];
+                addToDominatingSet(cv);
+                OGDF_ASSERT(DS.back() == cv_id);
+                DS.pop_back();
+                DS.insert(DS.end(), otherDS.begin(), otherDS.end());
+            };
+
+            if (std::find(I1.DS.begin(), I1.DS.end(), node2ID[cv]) != I1.DS.end()) {
+                log << "I1: Found a ds(B) that contains the cut-vertex. "
+                    << "Short-cut fixing ds_v(B) (containing CV) as DS, "
+                    << "removing B and also CV." << std::endl;
+                fixDSwithCV(I1.DS);
+                cv = nullptr;
+            } else {
+                Instance I2;
+                nMap2.fillWithDefault();
+                eMap2.fillWithDefault();
+                I2.G.insert(nodes, BC.hEdges(node), nMap2, eMap2);
+                I2.initFrom(*this, nodes, BC.hEdges(node), nMap2, eMap2, original_n, original_e, copy_e);
+
+                log << "I2: Computing ds_v(B) with cut-vertex v mandatory member of DS." << std::endl; //
+                {
+                    ogdf::Logger::Indent _(logger);
+                    I2.addToDominatingSet(nMap2[h_cv]);
+                    reduceAndSolve(I2, 200);
+                }
+
+                if (I1.DS.size() != I2.DS.size()) {
+                    OGDF_ASSERT(I1.DS.size() < I2.DS.size());
+                    log << "I1<I2: Found ds(B) < ds_v(B), so fixing ds(B) (not containing CV) as part of DS, "
+                        << "removing B and marking CV as dominated." << std::endl;
+                    for (auto hn : nodes) {
+                        auto n = BC.original(hn);
+                        if (n != cv) {
+                            safeDelete(n);
+                        }
+                    }
+                    markDominated(cv);
+                    DS.insert(DS.end(), I1.DS.begin(), I1.DS.end());
+                } else {
+                    log << "I1=I2: Found ds(B) = ds_v(B), so fixing ds_v(B) (containing CV) as DS, "
+                        << "removing B and also CV." << std::endl;
+                    fixDSwithCV(I2.DS);
+                    cv = nullptr;
+                }
             }
 
-            log << "I1 DS: " << I1.DS.size() << " I2 DS: " << I2.DS.size() << std::endl;
             replaced[node] = true;
             changed = true;
-            if (I1.DS.size() == I2.DS.size()) {
+            if (cv == nullptr) {
+                // deleted cv
                 replaced[parent] = true;
                 int old_size = subtree_size[parent];
                 for (auto p = BC.parent(parent); p != nullptr && !is_root; p = BC.parent(p)) {
                     subtree_size[p] -= old_size;
                 }
-
-                forAllOutAdj(cv,
-                             [&](ogdf::adjEntry adj) {
-                                 markDominated(adj->twinNode());
-                                 return true;
-                             });
-                for (auto n : nodes) {
-                    safeDelete(BC.original(n));
-                }
-                DS.insert(DS.end(), I2.DS.begin(), I2.DS.end());
             } else {
-                // TODO otherwise replace by gadget so that we don't reprocess the same block over all the time
-                int size_diff = subtree_size[node] - 5; // TODO gadget size
+                // only deleted block
+                int old_size = subtree_size[node];
                 for (auto p = parent; p != nullptr && !is_root; p = BC.parent(p)) {
-                    subtree_size[p] -= size_diff;
+                    subtree_size[p] -= old_size;
                 }
             }
+
+            // TODO for now, touching blocks incident to parent is problematic
+            //  as both addToDominatingSet and markDominated have removed edges within them
+            //  this could be fixed by deferring those two function calls
+            {
+                auto &l = logger.lout() << "no touchy blocks:";
+                l << " " << parent->index();
+                replaced[parent] = true;
+                for (auto adj : parent->adjEntries) {
+                    replaced[adj->twinNode()] = true;
+                    l << " " << adj->twinNode()->index();
+                }
+                l << std::endl;
+                // FIXME this doesn't even fix all issues if one of the blocks incident to the DS CV is a one-edge bridge
+            }
+
+            log << std::endl;
+            return true;
         }
     }
     return changed;
@@ -425,7 +497,8 @@ void reduceAndSolve(Instance &I, int d) {
             return;
         }
 
-        // if (I.reductionBCTree()) changed = true;
+        // TODO for now also iterate reductionBCTree as it can only apply one step
+        while (I.reductionBCTree()) changed = true;
         // TODO reductionDomination(instance)
         // TODO reductionDominationPaper(instance, dominatingSet))
 
