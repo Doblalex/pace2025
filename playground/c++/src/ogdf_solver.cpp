@@ -23,12 +23,14 @@ void solveEvalMaxSat(Instance &I) {
         if (!I.is_subsumed[v]) {
             clause.push_back(varmap[v]);
         }
-        for (auto adj : v->adjEntries) {
-            auto w = adj->twinNode();
-            if (!I.is_subsumed[w]) {
-                clause.push_back(varmap[w]);
-            }
-        }
+        forAllInAdj(v,
+                    [&](ogdf::adjEntry adj) {
+                        auto w = adj->twinNode();
+                        if (!I.is_subsumed[w]) {
+                            clause.push_back(varmap[w]);
+                        }
+                        return true;
+                    });
         solver.addClause(clause); //hard clause
     }
     solver.setTargetComputationTime(10 * 60);

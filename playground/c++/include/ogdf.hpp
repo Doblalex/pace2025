@@ -10,17 +10,77 @@ extern ogdf::Logger logger;
 #define log if (false) logger.lout()
 #endif
 
-#define forAllOutAdj(v, adj) \
-    OGDF_ASSERT((v)->outdeg() == 0 || (v)->adjEntries.head()->isSource()); \
-    for (auto adj_it = (v)->adjEntries.begin(); adj_it != (v)->adjEntries.end() && (*adj_it)->isSource();) { \
-        auto adj = *adj_it; \
+#ifdef OGDF_DEBUG
+inline void forAllOutAdj(ogdf::node v, std::function<bool(ogdf::adjEntry)> f) {
+    OGDF_ASSERT(v->outdeg() == 0 || v->adjEntries.head()->isSource());
+    OGDF_ASSERT(v->indeg() == 0 || !v->adjEntries.tail()->isSource());
+    size_t c = 0;
+    int outdeg = v->outdeg();
+    int degree = v->degree();
+    bool call = true;
+    auto adj_it = v->adjEntries.begin();
+    while (c < outdeg) {
+        OGDF_ASSERT(adj_it != v->adjEntries.end());
+        auto adj = *adj_it;
+        OGDF_ASSERT(adj->isSource());
         ++adj_it;
+        if (call && !f(adj)) call = false;
+        ++c;
+    }
+    while (c < degree) {
+        OGDF_ASSERT(adj_it != v->adjEntries.end());
+        OGDF_ASSERT(!(*adj_it)->isSource());
+        ++adj_it;
+        ++c;
+    }
+    OGDF_ASSERT(adj_it == v->adjEntries.end());
+}
 
-#define forAllInAdj(v, adj) \
-    OGDF_ASSERT((v)->indeg() == 0 || !(v)->adjEntries.tail()->isSource()); \
-    for (auto adj_it = (v)->adjEntries.rbegin(); adj_it != (v)->adjEntries.rend() && !(*adj_it)->isSource();) { \
-        auto adj = *adj_it; \
+inline void forAllInAdj(ogdf::node v, std::function<bool(ogdf::adjEntry)> f) {
+    OGDF_ASSERT(v->outdeg() == 0 || v->adjEntries.head()->isSource());
+    OGDF_ASSERT(v->indeg() == 0 || !v->adjEntries.tail()->isSource());
+    size_t c = 0;
+    int indeg = v->indeg();
+    int degree = v->degree();
+    bool call = true;
+    auto adj_it = v->adjEntries.rbegin();
+    while (c < indeg) {
+        OGDF_ASSERT(adj_it != v->adjEntries.rend());
+        auto adj = *adj_it;
+        OGDF_ASSERT(!adj->isSource());
         ++adj_it;
+        if (call && !f(adj)) call = false;
+        ++c;
+    }
+    while (c < degree) {
+        OGDF_ASSERT(adj_it != v->adjEntries.rend());
+        OGDF_ASSERT((*adj_it)->isSource());
+        ++adj_it;
+        ++c;
+    }
+    OGDF_ASSERT(adj_it == v->adjEntries.rend());
+}
+#else
+inline void forAllOutAdj(ogdf::node v, std::function<bool(ogdf::adjEntry)> f) {
+    for (auto adj_it = (v)->adjEntries.begin(); adj_it != (v)->adjEntries.end();) {
+        auto adj = *adj_it;
+        ++adj_it;
+        if (!adj->isSource() || !f(adj)) break;
+    }
+}
+inline void forAllInAdj(ogdf::node v, std::function<bool(ogdf::adjEntry)> f) {
+    for (auto adj_it = (v)->adjEntries.rbegin(); adj_it != (v)->adjEntries.rend();) {
+        auto adj = *adj_it;
+        ++adj_it;
+        if (adj->isSource() || !f(adj)) break;
+    }
+}
+#endif
+
+namespace internal {
+ogdf::node idn(ogdf::node n);
+ogdf::edge ide(ogdf::edge n);
+}
 
 struct Instance {
     ogdf::Graph G;
@@ -55,15 +115,35 @@ struct Instance {
                   const NL &nodes,
                   const EL &edges,
                   const ogdf::NodeArray<ogdf::node> &nMap,
-                  const ogdf::EdgeArray<ogdf::edge> &eMap) {
+                  const ogdf::EdgeArray<ogdf::edge> &eMap,
+                  std::function<ogdf::node(ogdf::node)> originalN = internal::idn,
+                  std::function<ogdf::edge(ogdf::edge)> originalE = internal::ide,
+                  std::function<ogdf::edge(ogdf::edge)> copyE = internal::ide) {
         for (auto n : nodes) {
-            node2ID[nMap[n]] = other.node2ID[n];
-            is_dominated[nMap[n]] = other.is_dominated[n];
-            is_subsumed[nMap[n]] = other.is_subsumed[n];
+            node2ID[nMap[n]] = other.node2ID[originalN(n)];
+            is_dominated[nMap[n]] = other.is_dominated[originalN(n)];
+            is_subsumed[nMap[n]] = other.is_subsumed[originalN(n)];
         }
         for (auto e : edges) {
-            reverse_edge[eMap[e]] = other.reverse_edge[e] != nullptr ? eMap[other.reverse_edge[e]] : nullptr;
+            if (other.reverse_edge[originalE(e)] != nullptr) {
+                reverse_edge[eMap[e]] = eMap[copyE(other.reverse_edge[originalE(e)])];
+            } else {
+                reverse_edge[eMap[e]] = nullptr;
+            }
         }
+#ifdef OGDF_DEBUG
+        for (auto n : G.nodes) {
+            size_t c = 0;
+            for (auto adj_it = n->adjEntries.begin(); adj_it != n->adjEntries.end(); ++c) {
+                auto adj = *adj_it;
+                ++adj_it;
+                OGDF_ASSERT(adj->isSource() == (c < n->outdeg()));
+                // if (adj->isSource() && adj != n->adjEntries.head()) {
+                //     G.moveAdj(adj, ogdf::Direction::before, n->adjEntries.head());
+                // }
+            }
+        }
+#endif
     }
 
     void read(std::istream &is);
@@ -78,7 +158,9 @@ struct Instance {
     void safeDelete(ogdf::node n) {
         // ID2node[node2ID[n]] = nullptr;
         G.delNode(n);
+#ifdef OGDF_DEBUG
         G.consistencyCheck();
+#endif
     }
 
     void safeDelete(ogdf::edge e) {
@@ -98,31 +180,37 @@ struct Instance {
     void addToDominatingSet(ogdf::node v, ogdf::Graph::node_iterator &it) {
         OGDF_ASSERT(!is_subsumed[v]);
         DS.push_back(node2ID[v]);
-        forAllOutAdj(v, adj)
-            auto u = adj->twinNode();
-            markDominated(u);
-            if (u->outdeg() == 0) {
-                safeDelete(u, it);
-            }
-        }
+        forAllOutAdj(v,
+                     [&](ogdf::adjEntry adj) {
+                         auto u = adj->twinNode();
+                         markDominated(u);
+                         if (u->outdeg() == 0) {
+                             safeDelete(u, it);
+                         }
+                         return true;
+                     });
         safeDelete(v, it);
     }
 
     void markDominated(ogdf::node v) {
         is_dominated[v] = true;
-        forAllInAdj(v, adj)
-            safeDelete(adj->theEdge());
-            // TODO shortcut some rules?
-        }
+        forAllInAdj(v,
+                    [&](ogdf::adjEntry adj) {
+                        safeDelete(adj->theEdge());
+                        // TODO shortcut some rules?
+                        return true;
+                    });
         // G.consistencyCheck();
     }
 
     void markSubsumed(ogdf::node v) {
         is_subsumed[v] = true;
-        forAllOutAdj(v, adj)
-            safeDelete(adj->theEdge());
-            // TODO shortcut some rules?
-        }
+        forAllOutAdj(v,
+                     [&](ogdf::adjEntry adj) {
+                         safeDelete(adj->theEdge());
+                         // TODO shortcut some rules?
+                         return true;
+                     });
         // G.consistencyCheck();
     }
 

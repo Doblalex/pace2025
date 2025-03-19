@@ -14,6 +14,9 @@
 
 ogdf::Logger logger;
 
+ogdf::node internal::idn(ogdf::node n) { return n; }
+ogdf::edge internal::ide(ogdf::edge n) { return n; }
+
 void Instance::read(std::istream &is) {
     unsigned int n, m;
     std::string s;
@@ -177,8 +180,7 @@ bool Instance::reductionBCTree() {
         if (
             node->degree() == 1 && // TODO might also work with larger subtrees that still have few nodes
             BC.typeOfBNode(node) == ogdf::BCTree::BNodeType::BComp &&
-            BC.numberOfNodes(node) < SMALL_BLOCK &&
-            node->outdeg() > 0 // currently, we cannot find a cutvertex for the root (all edges point to the root)
+            BC.numberOfNodes(node) < SMALL_BLOCK
         ) {
             log << "Processing leaf block with " << BC.numberOfNodes(node) << " nodes." << std::endl;
 
@@ -188,7 +190,13 @@ bool Instance::reductionBCTree() {
                 nodes.insert(e->target());
             }
 
-            ogdf::node h_cv = BC.hRefNode(node);
+            ogdf::node h_cv;
+            if (node->outdeg() > 0) {
+                // deg-1 root
+                h_cv = BC.hParNode(node->adjEntries.head()->twinNode());
+            } else {
+                h_cv = BC.hRefNode(node);
+            }
             OGDF_ASSERT(h_cv != nullptr);
             OGDF_ASSERT(nodes.isMember(h_cv));
             ogdf::node cv = BC.original(h_cv);
@@ -197,53 +205,30 @@ bool Instance::reductionBCTree() {
             nMap1.fillWithDefault();
             eMap1.fillWithDefault();
             I1.G.insert(nodes, BC.hEdges(node), nMap1, eMap1);
-            // I1.initFrom(*this, nodes, BC.hEdges(node), nMap1, eMap1);
-            for (auto n : nodes) {
-                I1.node2ID[nMap1[n]] = node2ID[BC.original(n)];
-                I1.is_dominated[nMap1[n]] = is_dominated[BC.original(n)];
-                I1.is_subsumed[nMap1[n]] = is_subsumed[BC.original(n)];
-            }
-            for (auto e : BC.hEdges(node)) {
-                I1.reverse_edge[eMap1[e]] = reverse_edge[BC.original(e)] != nullptr
-                                                ? eMap1[BC.rep(reverse_edge[BC.original(e)])]
-                                                : nullptr;
-            }
-            // FIXME why this?
-            for (auto n : I1.G.nodes) {
-                for (auto adj_it = n->adjEntries.begin(); adj_it != n->adjEntries.end();) {
-                    auto adj = *adj_it;
-                    ++adj_it;
-                    if (adj->isSource() && adj != n->adjEntries.head()) {
-                        I1.G.moveAdj(adj, ogdf::Direction::before, n->adjEntries.head());
-                    }
-                }
-            }
+            I1.initFrom(
+                *this,
+                nodes,
+                BC.hEdges(node),
+                nMap1,
+                eMap1,
+                [&BC](ogdf::node n) { return BC.original(n); },
+                [&BC](ogdf::edge n) { return BC.original(n); },
+                [&BC](ogdf::edge n) { return BC.rep(n); }
+            );
 
             Instance I2;
             nMap2.fillWithDefault();
             eMap2.fillWithDefault();
             I2.G.insert(nodes, BC.hEdges(node), nMap2, eMap2);
-            // I2.initFrom(*this, nodes, BC.hEdges(node), nMap2, eMap2);
-            for (auto n : nodes) {
-                I2.node2ID[nMap2[n]] = node2ID[BC.original(n)];
-                I2.is_dominated[nMap2[n]] = is_dominated[BC.original(n)];
-                I2.is_subsumed[nMap2[n]] = is_subsumed[BC.original(n)];
-            }
-            for (auto e : BC.hEdges(node)) {
-                I2.reverse_edge[eMap2[e]] = reverse_edge[BC.original(e)] != nullptr
-                                                ? eMap2[BC.rep(reverse_edge[BC.original(e)])]
-                                                : nullptr;
-            }
-            // FIXME why this?
-            for (auto n : I2.G.nodes) {
-                for (auto adj_it = n->adjEntries.begin(); adj_it != n->adjEntries.end();) {
-                    auto adj = *adj_it;
-                    ++adj_it;
-                    if (adj->isSource() && adj != n->adjEntries.head()) {
-                        I2.G.moveAdj(adj, ogdf::Direction::before, n->adjEntries.head());
-                    }
-                }
-            }
+            I2.initFrom(
+                *this,
+                nodes,
+                BC.hEdges(node),
+                nMap2,
+                eMap2,
+                [&BC](ogdf::node n) { return BC.original(n); },
+                [&BC](ogdf::edge n) { return BC.original(n); },
+                [&BC](ogdf::edge n) { return BC.rep(n); });
 
             log << "Solving I1 with dominated CV." << std::endl; {
                 ogdf::Logger::Indent _(logger);
@@ -259,9 +244,11 @@ bool Instance::reductionBCTree() {
 
             log << "I1 DS: " << I1.DS.size() << " I2 DS: " << I2.DS.size() << std::endl;
             if (I1.DS.size() == I2.DS.size()) {
-                forAllOutAdj(cv, adj)
-                    markDominated(adj->twinNode());
-                }
+                forAllOutAdj(cv,
+                             [&](ogdf::adjEntry adj) {
+                                 markDominated(adj->twinNode());
+                                 return true;
+                             });
                 for (auto n : nodes) {
                     safeDelete(BC.original(n));
                 }
