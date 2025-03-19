@@ -2,6 +2,29 @@
 
 #include "EvalMaxSAT.h"
 
+void solveGreedy(Instance &I) {
+    log << "Solving Greedy with " << I.G.numberOfNodes() << " nodes" << std::endl;
+    log << "Old DS size: " << I.DS.size() << std::endl;
+    while (!I.G.empty()) {
+        ogdf::node bestVertex = nullptr;
+        int bestValue = -1;
+        for (auto v : I.G.nodes) {
+            int wouldbecovered = v->outdeg();
+            if (I.is_dominated[v])
+                wouldbecovered++;
+            if (wouldbecovered > bestValue) {
+                bestValue = wouldbecovered;
+                bestVertex = v;
+            }
+        }
+        if (bestVertex == nullptr) {
+            break;
+        }
+        I.addToDominatingSet(bestVertex);
+    }
+    log << "New DS size: " << I.DS.size() << std::endl;
+}
+
 void solveEvalMaxSat(Instance &I) {
     EvalMaxSAT solver;
     const int n = I.G.numberOfNodes();
@@ -34,7 +57,9 @@ void solveEvalMaxSat(Instance &I) {
         solver.addClause(clause); //hard clause
     }
     solver.setTargetComputationTime(10 * 60);
+    std::cout.setstate(std::ios::failbit); // https://stackoverflow.com/a/8246430
     bool solved = solver.solve();
+    std::cout.clear();
     log << "Solving result: " << solved << std::endl;
     log << "Old DS size: " << I.DS.size() << std::endl;
     for (auto v : I.G.nodes) {

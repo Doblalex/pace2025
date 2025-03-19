@@ -515,10 +515,11 @@ void reduceAndSolve(Instance &I, int d) {
         << need << " vertices need to be dominated, " << can << " are eligible for the DS." << std::endl;
     I.dumpBCTree();
 
-    // if (I.G.numberOfNodes() > SMALL_BLOCK) {
-    log << "SKIPPING!" << std::endl;
-    return;
-    // }
+    if (I.G.numberOfNodes() > SMALL_BLOCK) {
+        log << "Using greedy approximation for large block!" << std::endl;
+        solveGreedy(I);
+        return;
+    }
 
     // now to solving...
 #ifdef USE_ORTOOLS
