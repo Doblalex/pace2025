@@ -170,6 +170,35 @@ std::list<Instance> Instance::decomposeConnectedComponents() {
 
 bool Instance::reductionBCTree() {
     ogdf::BCTree BC(G);
+    ogdf::NodeArray<bool> replaced(BC.bcTree(), false);
+    ogdf::NodeArray<int> subtree_size(BC.bcTree(), 0); //
+    {
+        std::vector<ogdf::node> todo;
+        ogdf::NodeArray<int> subtrees_seen(BC.bcTree(), 0);
+        for (auto n : BC.bcTree().nodes) {
+            OGDF_ASSERT(n->outdeg() <= 1);
+            if (n->indeg() == 0) {
+                todo.push_back(n);
+            }
+            if (BC.typeOfBNode(n) == ogdf::BCTree::BNodeType::BComp) {
+                subtree_size[n] = BC.numberOfNodes(n);
+            } else {
+                subtree_size[n] = -n->degree() + 1; // discount copies of C-nodes
+            }
+        }
+        while (!todo.empty()) {
+            auto n = todo.back();
+            todo.pop_back();
+            ogdf::node p = BC.parent(n);
+
+            subtree_size[p] += subtree_size[n];
+            subtrees_seen[p] += 1;
+            if (subtrees_seen[p] == p->indeg()) {
+                todo.push_back(p);
+            }
+        }
+    }
+
     ogdf::NodeSet<> nodes(BC.auxiliaryGraph());
     ogdf::NodeArray<ogdf::node> nMap1(BC.auxiliaryGraph(), nullptr);
     ogdf::EdgeArray<ogdf::edge> eMap1(BC.auxiliaryGraph(), nullptr);
@@ -180,8 +209,26 @@ bool Instance::reductionBCTree() {
         if (
             node->degree() == 1 && // TODO might also work with larger subtrees that still have few nodes
             BC.typeOfBNode(node) == ogdf::BCTree::BNodeType::BComp &&
-            BC.numberOfNodes(node) < SMALL_BLOCK
+            BC.numberOfNodes(node) < SMALL_BLOCK &&
+            !replaced[node]
         ) {
+            ogdf::node h_cv;
+            ogdf::node parent = BC.parent(node);
+            bool is_root = false;
+            if (parent == nullptr) {
+                // deg-1 root
+                h_cv = BC.hParNode(node->adjEntries.head()->twinNode());
+                parent = node->adjEntries.head()->twinNode();
+                is_root = true;
+            } else {
+                h_cv = BC.hRefNode(node);
+            }
+            OGDF_ASSERT(parent!=nullptr);
+            OGDF_ASSERT(h_cv != nullptr);
+            OGDF_ASSERT(nodes.isMember(h_cv));
+            ogdf::node cv = BC.original(h_cv);
+
+            if (replaced[parent]) continue;
             log << "Processing leaf block with " << BC.numberOfNodes(node) << " nodes." << std::endl;
 
             nodes.clear();
@@ -189,17 +236,6 @@ bool Instance::reductionBCTree() {
                 nodes.insert(e->source());
                 nodes.insert(e->target());
             }
-
-            ogdf::node h_cv;
-            if (node->outdeg() > 0) {
-                // deg-1 root
-                h_cv = BC.hParNode(node->adjEntries.head()->twinNode());
-            } else {
-                h_cv = BC.hRefNode(node);
-            }
-            OGDF_ASSERT(h_cv != nullptr);
-            OGDF_ASSERT(nodes.isMember(h_cv));
-            ogdf::node cv = BC.original(h_cv);
 
             Instance I1;
             nMap1.fillWithDefault();
@@ -243,7 +279,15 @@ bool Instance::reductionBCTree() {
             }
 
             log << "I1 DS: " << I1.DS.size() << " I2 DS: " << I2.DS.size() << std::endl;
+            replaced[node] = true;
+            changed = true;
             if (I1.DS.size() == I2.DS.size()) {
+                replaced[parent] = true;
+                int old_size = subtree_size[parent];
+                for (auto p = BC.parent(parent); p != nullptr && !is_root; p = BC.parent(p)) {
+                    subtree_size[p] -= old_size;
+                }
+
                 forAllOutAdj(cv,
                              [&](ogdf::adjEntry adj) {
                                  markDominated(adj->twinNode());
@@ -253,10 +297,12 @@ bool Instance::reductionBCTree() {
                     safeDelete(BC.original(n));
                 }
                 DS.insert(DS.end(), I2.DS.begin(), I2.DS.end());
-                changed = true;
-                break; // TODO we could continue as long as we don't process any block attached to the same CV
             } else {
                 // TODO otherwise replace by gadget so that we don't reprocess the same block over all the time
+                int size_diff = subtree_size[node] - 5; // TODO gadget size
+                for (auto p = parent; p != nullptr && !is_root; p = BC.parent(p)) {
+                    subtree_size[p] -= size_diff;
+                }
             }
         }
     }
