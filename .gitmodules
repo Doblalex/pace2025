@@ -12,4 +12,4 @@
 	shallow = true
 [submodule "playground/c++/ext/ogdf"]
 	path = playground/c++/ext/ogdf
-	url = https://github.com/ogdf/ogdf.git
+	url = https://github.com/N-Coder/ogdf.git
