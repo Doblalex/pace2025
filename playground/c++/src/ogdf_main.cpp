@@ -1,7 +1,9 @@
 #include "ogdf.hpp"
 
 #include "ogdf/basic/GraphSets.h"
+#include "ogdf/basic/simple_graph_alg.h"
 #include "ogdf/decomposition/BCTree.h"
+#include "ogdf/decomposition/StaticSPQRTree.h"
 #include "ogdf/basic/GraphAttributes.h"
 #include "ogdf/energybased/FMMMLayout.h"
 #include "ogdf/fileformats/GraphIO.h"
@@ -55,8 +57,18 @@ void Instance::read(std::istream &is) {
 }
 
 void Instance::dumpBCTree() {
+    std::string stamp = std::to_string(std::chrono::system_clock::now().time_since_epoch().count()) + "-" +
+        std::to_string(G.numberOfNodes());
+    log << stamp << ".svg" << std::endl;
+    std::filesystem::create_directory("out");
+
     ogdf::BCTree BC(G);
     ogdf::GraphAttributes BCA(BC.bcTree(), ogdf::GraphAttributes::all);
+    ogdf::GraphAttributes BA;
+    ogdf::NodeSet<> nodes(BC.auxiliaryGraph());
+    ogdf::NodeArray<ogdf::node> nMap(BC.auxiliaryGraph(), nullptr);
+    ogdf::EdgeArray<ogdf::edge> eMap(BC.auxiliaryGraph(), nullptr);
+
     for (auto node : BC.bcTree().nodes) {
         if (BC.typeOfBNode(node) == ogdf::BCTree::BNodeType::BComp) {
             BCA.shape(node) = ogdf::Shape::Ellipse;
@@ -65,18 +77,84 @@ void Instance::dumpBCTree() {
         } else {
             BCA.shape(node) = ogdf::Shape::Rhomb;
             BCA.label(node) = "";
+            continue;
+        }
+
+        if (BC.numberOfEdges(node) < SMALL_BLOCK) {
+            continue;
+        }
+
+        nodes.clear();
+        for (auto e : BC.hEdges(node)) {
+            nodes.insert(e->source());
+            nodes.insert(e->target());
+        }
+        nMap.fillWithDefault();
+        eMap.fillWithDefault();
+        ogdf::Graph B;
+        BA.init(G, ogdf::GraphAttributes::nodeLabel);
+        B.insert(nodes, BC.hEdges(node), nMap, eMap);
+        for (auto n : nodes) {
+            BA.label(nMap[n]) = node2ID[BC.original(n)];
+        }
+        auto file = "out/block-" + stamp + "-b" + std::to_string(node->index()) + "-" + std::to_string(
+            BC.numberOfNodes(node));
+        // ogdf::GraphIO::write(B, file + ".gml");
+        ogdf::GraphIO::write(B, file + ".s6"); //
+
+        // SPQR-Tree of B
+        {
+            ogdf::makeParallelFreeUndirected(B);
+            // // Smooth out subdivided edges
+            // ogdf::safeForEach(B.nodes,
+            //                   [&B](ogdf::node n) {
+            //                       if (n->degree() == 2) {
+            //                           if (n->outdeg()==2 || n->indeg()==2) {
+            //                               B.reverseEdge(n->adjEntries.head()->theEdge());
+            //                           }
+            //                           B.unsplit(n);
+            //                       }
+            //                   });
+            // // And remove now-parallel edges
+            // ogdf::makeParallelFreeUndirected(B);
+            ogdf::StaticSPQRTree T(B);
+            ogdf::GraphAttributes TA(T.tree(), ogdf::GraphAttributes::all);
+            for (auto n : T.tree().nodes) {
+                switch (T.typeOf(n)) {
+                    case ogdf::SPQRTree::NodeType::SNode:
+                        TA.label(n) = "S " + std::to_string(T.skeleton(n).getGraph().numberOfEdges());
+                        TA.shape(n) = ogdf::Shape::Ellipse;
+                        TA.strokeColor(n) = ogdf::Color(ogdf::Color::Name::Darkgreen);
+                        break;
+                    case ogdf::SPQRTree::NodeType::PNode:
+                        TA.label(n) = "P " + std::to_string(T.skeleton(n).getGraph().numberOfEdges());
+                        TA.shape(n) = ogdf::Shape::Rhomb;
+                        TA.strokeColor(n) = ogdf::Color(ogdf::Color::Name::Darkblue);
+                        break;
+                    case ogdf::SPQRTree::NodeType::RNode:
+                        TA.label(n) = "R " + std::to_string(T.skeleton(n).getGraph().numberOfEdges()) + "/" +
+                            std::to_string(T.skeleton(n).getGraph().numberOfNodes());
+                        TA.shape(n) = ogdf::Shape::Rect;
+                        TA.strokeColor(n) = ogdf::Color(ogdf::Color::Name::Darkred);
+                        break;
+                }
+                TA.strokeWidth(n) = 2;
+                TA.width(n) = 15 + TA.label(n).size() * 5;
+                TA.height(n) = 20 + TA.label(n).size() * 3;
+            }
+            ogdf::FMMMLayout().call(TA);
+            ogdf::GraphIO::write(TA, file + "-spqr-fmmm.svg");
+            ogdf::SugiyamaLayout().call(TA);
+            ogdf::GraphIO::write(TA, file + "-spqr-sugi.svg");
         }
     }
-    std::string stamp = std::to_string(std::chrono::system_clock::now().time_since_epoch().count()) + "-" +
-        std::to_string(G.numberOfNodes());
-    log << stamp << ".svg" << std::endl;
+
     ogdf::FMMMLayout().call(BCA);
-    std::filesystem::create_directory("out");
     ogdf::GraphIO::write(BCA, "out/fmmm-" + stamp + ".svg");
-    ogdf::GraphIO::write(BCA, "out/fmmm-" + stamp + ".gml");
+    // ogdf::GraphIO::write(BCA, "out/fmmm-" + stamp + ".gml");
     ogdf::SugiyamaLayout().call(BCA);
     ogdf::GraphIO::write(BCA, "out/sugi-" + stamp + ".svg");
-    ogdf::GraphIO::write(BCA, "out/sugi-" + stamp + ".gml");
+    // ogdf::GraphIO::write(BCA, "out/sugi-" + stamp + ".gml");
 }
 
 bool Instance::reductionExtremeDegrees() {
@@ -364,10 +442,10 @@ void reduceAndSolve(Instance &I, int d) {
         << need << " vertices need to be dominated, " << can << " are eligible for the DS." << std::endl;
     I.dumpBCTree();
 
-    if (I.G.numberOfNodes() > SMALL_BLOCK) {
-        log << "SKIPPING!" << std::endl;
-        return;
-    }
+    // if (I.G.numberOfNodes() > SMALL_BLOCK) {
+    log << "SKIPPING!" << std::endl;
+    return;
+    // }
 
     // now to solving...
 #ifdef USE_ORTOOLS
