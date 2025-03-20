@@ -248,36 +248,12 @@ std::list<Instance> Instance::decomposeConnectedComponents() {
 }
 
 bool Instance::reductionBCTree() {
-    ogdf::BCTree BC(G);
-    ogdf::NodeArray<bool> replaced(BC.bcTree(), false);
-    ogdf::NodeArray<int> subtree_size(BC.bcTree(), 0); //
-    {
-        std::vector<ogdf::node> todo;
-        ogdf::NodeArray<int> subtrees_seen(BC.bcTree(), 0);
-        for (auto n : BC.bcTree().nodes) {
-            OGDF_ASSERT(n->outdeg() <= 1);
-            if (n->indeg() == 0) {
-                todo.push_back(n);
-            }
-            if (BC.typeOfBNode(n) == ogdf::BCTree::BNodeType::BComp) {
-                subtree_size[n] = BC.numberOfNodes(n);
-            } else {
-                subtree_size[n] = -n->degree() + 1; // discount copies of C-nodes
-            }
-        }
-        while (!todo.empty()) {
-            auto n = todo.back();
-            todo.pop_back();
-            ogdf::node p = BC.parent(n);
-            if (p == nullptr) continue;
+    enum class Replaced {
+        Unchanged, Dominated, Removed
+    };
 
-            subtree_size[p] += subtree_size[n];
-            subtrees_seen[p] += 1;
-            if (subtrees_seen[p] == p->indeg()) {
-                todo.push_back(p);
-            }
-        }
-    }
+    ogdf::BCTree BC(G);
+    ogdf::NodeArray<Replaced> replaced(BC.bcTree(), Replaced::Unchanged);
     const auto original_n = [&BC](ogdf::node n) {
         OGDF_ASSERT(n->graphOf() == &BC.auxiliaryGraph());
         auto on = BC.original(n);
@@ -305,10 +281,10 @@ bool Instance::reductionBCTree() {
     bool changed = false;
     for (auto node : BC.bcTree().nodes) {
         if (
-            node->degree() == 1 && // TODO might also work with larger subtrees that still have few nodes
+            node->degree() == 1 &&
             BC.typeOfBNode(node) == ogdf::BCTree::BNodeType::BComp &&
             BC.numberOfNodes(node) < SMALL_BLOCK &&
-            !replaced[node]
+            replaced[node] == Replaced::Unchanged
         ) {
             ogdf::node h_cv;
             ogdf::node parent = BC.parent(node);
@@ -327,17 +303,17 @@ bool Instance::reductionBCTree() {
             ogdf::node cv = BC.original(h_cv);
             OGDF_ASSERT(BC.bcproper(cv) == parent);
 
-            if (replaced[parent]) continue;
+            if (replaced[parent] == Replaced::Removed) continue;
 #ifdef OGDF_DEBUG
             log << "Processing " << (is_root ? "root " : "") << "leaf block " << node << " with "
                 << BC.numberOfNodes(node) << " nodes and " << (is_root ? "single child " : "parent ")
                 << parent << "." << std::endl;
-            auto &l = logger.lout() << "CV " << cv << " has BC " << parent << " with parent "
-                << BC.parent(parent) << "(" << BC.numberOfEdges(BC.parent(parent)) << ")" << " and children";
-            for (auto adj : parent->adjEntries) {
-                if (!adj->isSource()) l << " " << adj->twinNode() << "(" << BC.numberOfEdges(adj->twinNode()) << ")";
-            }
-            l << std::endl;
+            // auto &l = logger.lout() << "CV " << cv << " has BC " << parent << " with parent "
+            //     << BC.parent(parent) << "(" << BC.numberOfEdges(BC.parent(parent)) << ")" << " and children";
+            // for (auto adj : parent->adjEntries) {
+            //     if (!adj->isSource()) l << " " << adj->twinNode() << "(" << BC.numberOfEdges(adj->twinNode()) << ")";
+            // }
+            // l << std::endl;
 #endif
 
             nodes.clear();
@@ -352,7 +328,7 @@ bool Instance::reductionBCTree() {
             }
 #endif
 
-            // TODO what if cv already dominated / subsumed?
+            // TODO what if cv already dominated / subsumed / replaced[parent] == Replaced::Dominated?
             Instance I1;
             nMap1.fillWithDefault();
             eMap1.fillWithDefault();
@@ -365,27 +341,14 @@ bool Instance::reductionBCTree() {
                 reduceAndSolve(I1, 100);
             }
 
-            auto fixDSwithCV = [this,cv,&nodes,&BC](const std::vector<int> &otherDS) {
-                for (auto hn : nodes) {
-                    auto n = BC.original(hn);
-                    if (n != cv) {
-                        safeDelete(n);
-                    }
-                }
-
-                auto cv_id = node2ID[cv];
-                addToDominatingSet(cv);
-                OGDF_ASSERT(DS.back() == cv_id);
-                DS.pop_back();
-                DS.insert(DS.end(), otherDS.begin(), otherDS.end());
-            };
-
+            changed = true;
+            replaced[node] = Replaced::Removed;
             if (std::find(I1.DS.begin(), I1.DS.end(), node2ID[cv]) != I1.DS.end()) {
                 log << "I1: Found a ds(B) that contains the cut-vertex. "
                     << "Short-cut fixing ds_v(B) (containing CV) as DS, "
                     << "removing B and also CV." << std::endl;
-                fixDSwithCV(I1.DS);
-                cv = nullptr;
+                replaced[parent] = Replaced::Removed;
+                DS.insert(DS.end(), I1.DS.begin(), I1.DS.end());
             } else {
                 Instance I2;
                 nMap2.fillWithDefault();
@@ -404,58 +367,47 @@ bool Instance::reductionBCTree() {
                     OGDF_ASSERT(I1.DS.size() < I2.DS.size());
                     log << "I1<I2: Found ds(B) < ds_v(B), so fixing ds(B) (not containing CV) as part of DS, "
                         << "removing B and marking CV as dominated." << std::endl;
-                    for (auto hn : nodes) {
-                        auto n = BC.original(hn);
-                        if (n != cv) {
-                            safeDelete(n);
-                        }
-                    }
-                    markDominated(cv);
+                    replaced[parent] = Replaced::Dominated;
                     DS.insert(DS.end(), I1.DS.begin(), I1.DS.end());
                 } else {
                     log << "I1=I2: Found ds(B) = ds_v(B), so fixing ds_v(B) (containing CV) as DS, "
                         << "removing B and also CV." << std::endl;
-                    fixDSwithCV(I2.DS);
-                    cv = nullptr;
+                    replaced[parent] = Replaced::Removed;
+                    DS.insert(DS.end(), I2.DS.begin(), I2.DS.end());
                 }
             }
 
-            replaced[node] = true;
-            changed = true;
-            if (cv == nullptr) {
-                // deleted cv
-                replaced[parent] = true;
-                int old_size = subtree_size[parent];
-                for (auto p = BC.parent(parent); p != nullptr && !is_root; p = BC.parent(p)) {
-                    subtree_size[p] -= old_size;
-                }
-            } else {
-                // only deleted block
-                int old_size = subtree_size[node];
-                for (auto p = parent; p != nullptr && !is_root; p = BC.parent(p)) {
-                    subtree_size[p] -= old_size;
+            // delete all vertices in B now, handle the CV later
+            for (auto hn : nodes) {
+                auto n = BC.original(hn);
+                if (n != cv) {
+                    safeDelete(n);
                 }
             }
-
-            // TODO for now, touching blocks incident to parent is problematic
-            //  as both addToDominatingSet and markDominated have removed edges within them
-            //  this could be fixed by deferring those two function calls
-            {
-                auto &l = logger.lout() << "no touchy blocks:";
-                l << " " << parent->index();
-                replaced[parent] = true;
-                for (auto adj : parent->adjEntries) {
-                    replaced[adj->twinNode()] = true;
-                    l << " " << adj->twinNode()->index();
-                }
-                l << std::endl;
-                // FIXME this doesn't even fix all issues if one of the blocks incident to the DS CV is a one-edge bridge
-            }
-
-            log << std::endl;
-            return true;
         }
     }
+    int d = 0, r = 0;
+    if (changed) {
+        for (auto node : BC.bcTree().nodes) {
+            if (replaced[node] == Replaced::Unchanged) continue;
+            if (BC.typeOfBNode(node) == ogdf::BCTree::BNodeType::BComp) continue;
+            auto cv = BC.original(BC.hRefNode(node));
+
+            if (replaced[node] == Replaced::Dominated) {
+                markDominated(cv);
+                ++d;
+            } else {
+                OGDF_ASSERT(replaced[node] == Replaced::Removed);
+                auto cv_id = node2ID[cv];
+                addToDominatingSet(cv);
+                OGDF_ASSERT(DS.back() == cv_id);
+                DS.pop_back();
+                ++r;
+            }
+        }
+    }
+    if (r + d > 0)
+        log << "BCTree reduction removed " << r << " cut-vertices and marked " << d << " as dominated.\n" << std::endl;
     return changed;
 }
 
@@ -497,8 +449,7 @@ void reduceAndSolve(Instance &I, int d) {
             return;
         }
 
-        // TODO for now also iterate reductionBCTree as it can only apply one step
-        while (I.reductionBCTree()) changed = true;
+        if (I.reductionBCTree()) changed = true;
         // TODO reductionDomination(instance)
         // TODO reductionDominationPaper(instance, dominatingSet))
 
@@ -513,7 +464,9 @@ void reduceAndSolve(Instance &I, int d) {
     auto [can,need] = I.dominationStats();
     log << "Reduced instance contains " << n << " nodes, " << m << " edges. "
         << need << " vertices need to be dominated, " << can << " are eligible for the DS." << std::endl;
+#ifdef OGDF_DEBUG
     I.dumpBCTree();
+#endif
 
     if (I.G.numberOfNodes() > SMALL_BLOCK) {
         log << "Using greedy approximation for large block!" << std::endl;
