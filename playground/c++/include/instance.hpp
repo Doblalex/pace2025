@@ -3,8 +3,6 @@
 
 #include "util.hpp"
 
-
-
 class Instance
 {
     public:

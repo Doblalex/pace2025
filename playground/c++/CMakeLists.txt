@@ -28,8 +28,17 @@ set(SOURCES
   src/exactsolver.cpp
 )
 
+set(OGDF_SOURCES
+  src/ogdf_main.cpp
+  src/ogdf_solver.cpp
+  src/ogdf_greedy.cpp
+  src/ogdf_instance.cpp
+  src/ogdf_io.cpp
+  src/ogdf_maxsat.cpp
+)
+
 add_executable(dsexact ${SOURCES})
-add_executable(ogdf_dsexact src/ogdf_main.cpp src/ogdf_solver.cpp)
+add_executable(ogdf_dsexact ${OGDF_SOURCES})
 
 # EVALMAXSAT ---------------------------------------------------------------
 set(localLibs

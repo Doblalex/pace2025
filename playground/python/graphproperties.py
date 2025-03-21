@@ -38,7 +38,7 @@ DIR = "../../instances/official/ds/exact"
 csvwriter = csv.writer(open("graph_properties.csv", "w"))
 csvwriter.writerow(["instance", "n", "m", "TW UB", "Planar", "VC UB", "Degeneracy", "Chromatic UB", "FES UB"])
 for file in sorted(os.listdir(DIR)):
-    if file.endswith(".gr"):
+    if file.endswith(".gr") and "33" in file:
         print(file)
         with open(os.path.join(DIR, file)) as f:
             lines = list(f.readlines())
@@ -46,31 +46,35 @@ for file in sorted(os.listdir(DIR)):
             n, m = int(n), int(m)
             G = nx.Graph()
 
+            
+
             for i in range(m):
                 u, v = map(int, lines[i+1].split())
                 G.add_edge(u, v)
-            try: 
-                tw = treewidth(G)
-            except:
-                tw = ""
-            try: 
-                ip = is_planar(G)
-            except:
-                ip = ""
-            try:
-                vc = vertex_cover(G)
-            except:
-                vc = ""
-            try:
-                deg = degeneracy(G)
-            except:
-                deg = ""
-            try:
-                cn = chromatic_number(G)
-            except: 
-                cn = ""
-            try:
-                fes = feedback_edges(G)
-            except:
-                fes = ""
-            csvwriter.writerow([file, len(G.nodes), len(G.edges), tw, ip, vc, deg, cn, fes])
+            print(len(list(nx.connected_components(G))))
+            print(nx.node_connectivity(G))
+            # try: 
+            #     tw = treewidth(G)
+            # except:
+            #     tw = ""
+            # try: 
+            #     ip = is_planar(G)
+            # except:
+            #     ip = ""
+            # try:
+            #     vc = vertex_cover(G)
+            # except:
+            #     vc = ""
+            # try:
+            #     deg = degeneracy(G)
+            # except:
+            #     deg = ""
+            # try:
+            #     cn = chromatic_number(G)
+            # except: 
+            #     cn = ""
+            # try:
+            #     fes = feedback_edges(G)
+            # except:
+            #     fes = ""
+            # csvwriter.writerow([file, len(G.nodes), len(G.edges), tw, ip, vc, deg, cn, fes])

@@ -1,73 +1,74 @@
-#include "ogdf.hpp"
+#include "ogdf_solver.hpp"
+#include "ogdf_maxsat.hpp"
+#include "ogdf_greedy.hpp"
 
-#include "EvalMaxSAT.h"
+void reduceAndSolve(Instance &I, int d) {
+    bool changed = true;
+    int m, n, i = 0;
+    while (changed) {
+        n = I.G.numberOfNodes();
+        m = I.G.numberOfEdges();
+        changed = false;
+        log << "Reduce iteration " << i << " depth " << d << ": " << n << " nodes, " << m << " edges" << std::endl;
 
-void solveGreedy(Instance &I) {
-    log << "Solving Greedy with " << I.G.numberOfNodes() << " nodes" << std::endl;
-    log << "Old DS size: " << I.DS.size() << std::endl;
-    while (!I.G.empty()) {
-        ogdf::node bestVertex = nullptr;
-        int bestValue = -1;
-        for (auto v : I.G.nodes) {
-            int wouldbecovered = v->outdeg();
-            if (I.is_dominated[v])
-                wouldbecovered++;
-            if (wouldbecovered > bestValue) {
-                bestValue = wouldbecovered;
-                bestVertex = v;
+        // this reduction is so cheap, make sure we really have no isolated vertices before decomposing components
+        while (I.reductionExtremeDegrees()) changed = true;
+        // TODO reductionTwins(instance)
+
+        std::list<Instance> comps = I.decomposeConnectedComponents();
+        if (!comps.empty()) {
+            log << comps.size() << " connected components" << std::endl;
+            I.clear(); // save some memory
+
+            int c = 0;
+            for (auto &comp : comps) {
+                log << "Connected component " << c << std::endl;
+                ogdf::Logger::Indent _(logger);
+                ++c;
+
+                // TODO run remaining reduction rules on all components?
+                // TODO reductionDomination(instance)
+                // TODO reductionDominationPaper(instance, dominatingSet))
+
+                // and now recurse
+                reduceAndSolve(comp, d + 1);
+                log << "DS before adding connected component " << c << ": " << I.DS.size() << std::endl;
+                log << "DS of connected component " << c << ": " << comp.DS.size() << std::endl;
+                I.DS.insert(I.DS.end(), comp.DS.begin(), comp.DS.end());
+                log << "DS after adding connected component " << c << ": " << I.DS.size() << std::endl;
             }
+            return;
         }
-        if (bestVertex == nullptr) {
-            break;
-        }
-        I.addToDominatingSet(bestVertex);
-    }
-    log << "New DS size: " << I.DS.size() << std::endl;
-}
 
-void solveEvalMaxSat(Instance &I) {
-    EvalMaxSAT solver;
-    const int n = I.G.numberOfNodes();
-    log << "Solving ILP with " << n << " nodes" << std::endl;
-    ogdf::NodeArray<int> varmap(I.G, -1);
-    for (auto v : I.G.nodes) {
-        if (I.is_subsumed[v]) {
-            continue;
-        }
-        auto var = solver.newVar();
-        varmap[v] = var;
-        solver.addClause({-var}, 1); // soft clause
+        if (I.reductionBCTree()) changed = true;
+        // TODO reductionDomination(instance)
+        // TODO reductionDominationPaper(instance, dominatingSet))
+
+        OGDF_ASSERT(!changed || I.G.numberOfNodes() < n|| I.G.numberOfEdges() < m);
+        ++i;
     }
-    for (auto v : I.G.nodes) {
-        if (I.is_dominated[v]) {
-            continue;
-        }
-        std::vector<int> clause;
-        if (!I.is_subsumed[v]) {
-            clause.push_back(varmap[v]);
-        }
-        forAllInAdj(v,
-                    [&](ogdf::adjEntry adj) {
-                        auto w = adj->twinNode();
-                        if (!I.is_subsumed[w]) {
-                            clause.push_back(varmap[w]);
-                        }
-                        return true;
-                    });
-        solver.addClause(clause); //hard clause
+
+    if (I.G.numberOfNodes() < 1) {
+        log << "Reduced instance is empty!" << std::endl;
+        return;
     }
-    solver.setTargetComputationTime(10 * 60);
-    std::cout.setstate(std::ios::failbit); // https://stackoverflow.com/a/8246430
-    bool solved = solver.solve();
-    std::cout.clear();
-    log << "Solving result: " << solved << std::endl;
-    log << "Old DS size: " << I.DS.size() << std::endl;
-    for (auto v : I.G.nodes) {
-        if (!I.is_subsumed[v]) {
-            if (solver.getValue(varmap[v])) {
-                I.DS.push_back(I.node2ID[v]);
-            }
-        }
+    auto [can,need] = I.dominationStats();
+    log << "Reduced instance contains " << n << " nodes, " << m << " edges. "
+        << need << " vertices need to be dominated, " << can << " are eligible for the DS." << std::endl;
+#ifdef OGDF_DEBUG
+    // I.dumpBCTree();
+#endif
+
+    if (I.G.numberOfNodes() > SMALL_BLOCK) {
+        log << "Using greedy approximation for large block!" << std::endl;
+        solveGreedy(I);
+        return;
     }
-    log << "New DS size: " << I.DS.size() << std::endl;
+
+    // now to solving...
+#ifdef USE_ORTOOLS
+        solveCPSat(instance, dominatingSet);
+#else
+    solveEvalMaxSat(I);
+#endif
 }
