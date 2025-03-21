@@ -6,7 +6,7 @@
 void solveEvalMaxSat(Instance &I) {
     EvalMaxSAT solver;
     const int n = I.G.numberOfNodes();
-    log << "Solving ILP with " << n << " nodes" << std::endl;
+    log << "Solving MaxSat with " << n << " nodes" << std::endl;
     ogdf::NodeArray<int> varmap(I.G, -1);
     for (auto v : I.G.nodes) {
         if (I.is_subsumed[v]) {

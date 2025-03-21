@@ -12,7 +12,8 @@ int main(int argc, char **argv) {
     auto start = std::chrono::system_clock::now();
     Instance I;
     I.read(std::cin);
-    reduceAndSolve(I);
+    reduceAndSolve(I, 0);
+    log<<"size dominating set: "<<I.DS.size()<<std::endl;
     auto end = std::chrono::system_clock::now();
     std::chrono::duration<double> runtime = end - start;
 }
