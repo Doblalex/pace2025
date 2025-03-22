@@ -1,6 +1,6 @@
 #pragma once
 
-#include "ogdf_util.hpp"
 #include "ogdf_instance.hpp"
+#include "ogdf_util.hpp"
 
-void solveEvalMaxSat(Instance &I);
+void solveEvalMaxSat(Instance& I);

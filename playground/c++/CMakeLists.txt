@@ -39,6 +39,7 @@ set(OGDF_SOURCES
 
 add_executable(dsexact ${SOURCES})
 add_executable(ogdf_dsexact ${OGDF_SOURCES})
+add_executable(ogdf_validate src/ogdf_validator.cpp src/ogdf_io.cpp)
 
 # EVALMAXSAT ---------------------------------------------------------------
 set(localLibs
@@ -133,4 +134,5 @@ if(USE_OGDF)
     include_directories(${PROJECT_SOURCE_DIR}/ext/ogdf/include)
   endif()
   target_link_libraries(ogdf_dsexact OGDF)
+  target_link_libraries(ogdf_validate OGDF)
 endif()
