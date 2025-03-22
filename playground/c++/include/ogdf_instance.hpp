@@ -165,7 +165,7 @@ public:
 		}
 		l << std::endl;
 		DS.insert(DS.end(), begin, end);
-		log << "Updated DS" << (comment.empty() ? "" : "with ") << comment << ": " << before << "+"
+		log << "Updated DS" << (comment.empty() ? "" : " with ") << comment << ": " << before << "+"
 			<< (DS.size() - before) << "=" << DS.size() << std::endl;
 #else
 		DS.insert(DS.end(), begin, end);
