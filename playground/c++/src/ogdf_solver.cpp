@@ -52,7 +52,7 @@ void reduceAndSolve(Instance& I, int d) {
 	}
 
 	if (I.G.numberOfNodes() < 1) {
-		log << "Reduced instance is empty!" << std::endl;
+		log << "Reduced instance is empty with DS " << I.DS.size() << "!" << std::endl;
 		return;
 	}
 	auto [can, need] = I.dominationStats();

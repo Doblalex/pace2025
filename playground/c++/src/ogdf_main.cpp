@@ -22,6 +22,9 @@ int main(int argc, char** argv) {
 	ogdf::EdgeArray<ogdf::edge> eMap(I.G, nullptr);
 	I2.G.insert(I.G, nMap, eMap);
 	I2.initFrom(I, I.G.nodes, I.G.edges, nMap, eMap);
+	for (auto& e : ID2node) {
+		e = e == nullptr ? nullptr : nMap[e];
+	}
 #else
 	I.read(std::cin);
 #endif
@@ -40,7 +43,7 @@ int main(int argc, char** argv) {
 
 #ifdef OGDF_DEBUG
 	for (auto v : I.DS) {
-		I2.addToDominatingSet(nMap[ID2node.at(v)]);
+		I2.addToDominatingSet(ID2node.at(v));
 	}
 
 	int undom = 0;
