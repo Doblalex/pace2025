@@ -5,6 +5,7 @@
 void reduceAndSolve(Instance &I, int d) {
     bool changed = true;
     int m, n, i = 0;
+    logger.localLogLevel(ogdf::Logger::Level::Default);
     while (changed) {
         n = I.G.numberOfNodes();
         m = I.G.numberOfEdges();
@@ -13,7 +14,6 @@ void reduceAndSolve(Instance &I, int d) {
 
         // this reduction is so cheap, make sure we really have no isolated vertices before decomposing components
         while (I.reductionExtremeDegrees()) changed = true;
-        // TODO reductionTwins(instance)
 
         std::list<Instance> comps = I.decomposeConnectedComponents();
         if (!comps.empty()) {
@@ -27,8 +27,6 @@ void reduceAndSolve(Instance &I, int d) {
                 ++c;
 
                 // TODO run remaining reduction rules on all components?
-                // TODO reductionDomination(instance)
-                // TODO reductionDominationPaper(instance, dominatingSet))
 
                 // and now recurse
                 reduceAndSolve(comp, d + 1);
@@ -39,10 +37,9 @@ void reduceAndSolve(Instance &I, int d) {
             }
             return;
         }
-
-        if (I.reductionBCTree()) changed = true;
-        // TODO reductionDomination(instance)
-        // TODO reductionDominationPaper(instance, dominatingSet))
+        if (I.reductionStrongSubsumption()) changed = true;
+        if (I.reductionSubsumption()) changed = true;
+        // if (I.reductionBCTree()) changed = true;
 
         OGDF_ASSERT(!changed || I.G.numberOfNodes() < n|| I.G.numberOfEdges() < m);
         ++i;

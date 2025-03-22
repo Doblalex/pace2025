@@ -1,8 +1,6 @@
 #include "ogdf_maxsat.hpp"
 #include "EvalMaxSAT.h"
 
-
-
 void solveEvalMaxSat(Instance &I) {
     EvalMaxSAT solver;
     const int n = I.G.numberOfNodes();
@@ -35,9 +33,9 @@ void solveEvalMaxSat(Instance &I) {
         solver.addClause(clause); //hard clause
     }
     solver.setTargetComputationTime(10 * 60);
-    std::cout.setstate(std::ios::failbit); // https://stackoverflow.com/a/8246430
+    // std::cout.setstate(std::ios::failbit); // https://stackoverflow.com/a/8246430
     bool solved = solver.solve();
-    std::cout.clear();
+    // std::cout.clear();
     log << "Solving result: " << solved << std::endl;
     log << "Old DS size: " << I.DS.size() << std::endl;
     for (auto v : I.G.nodes) {

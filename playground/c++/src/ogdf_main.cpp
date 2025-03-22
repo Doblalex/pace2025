@@ -9,6 +9,7 @@ ogdf::edge internal::ide(ogdf::edge n) { return n; }
 
 
 int main(int argc, char **argv) {
+    logger.localLogLevel(ogdf::Logger::Level::Default);
     auto start = std::chrono::system_clock::now();
     Instance I;
     I.read(std::cin);

@@ -3,6 +3,11 @@
 #include "ogdf_util.hpp"
 
 struct Instance {
+private:
+    bool subsumptionCondition1(const ogdf::node& u, const ogdf::node& v, const ogdf::NodeArray<bool>& adju);
+    bool subsumptionCondition2(const ogdf::node& u, const ogdf::node& v, const ogdf::NodeArray<bool>& adju);
+    bool subsumptionCondition3(const ogdf::node& u, const ogdf::node& v, ogdf::NodeArray<bool>& inadjv);
+public:
     ogdf::Graph G;
     // std::vector<ogdf::node> ID2node;
     ogdf::NodeArray<int> node2ID;
@@ -23,7 +28,7 @@ struct Instance {
 
     void clear() {
         G.clear();
-        DS.clear();
+        // DS.clear(); Do not clear DS! This value is still used after computing connected components
         node2ID.init(G, -1);
         is_dominated.init(G, false);
         is_subsumed.init(G, false);
@@ -173,6 +178,10 @@ struct Instance {
     }
 
     bool reductionExtremeDegrees();
+
+    bool reductionStrongSubsumption();
+
+    bool reductionSubsumption();
 
     std::list<Instance> decomposeConnectedComponents();
 
