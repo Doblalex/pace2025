@@ -5,21 +5,23 @@
 struct Instance {
 private:
 	bool subsumptionCondition1(const ogdf::node& u, const ogdf::node& v,
-			const ogdf::NodeArray<bool>& adju);
+			const ogdf::NodeArray<bool>& adju, const ogdf::NodeArray<u_int64_t>& outadjMask);
 	bool subsumptionCondition2(const ogdf::node& u, const ogdf::node& v,
 			const ogdf::NodeArray<bool>& adju);
 	bool subsumptionCondition3(const ogdf::node& u, const ogdf::node& v,
-			ogdf::NodeArray<bool>& inadjv);
+			ogdf::NodeArray<bool>& inadjv, const ogdf::NodeArray<u_int64_t>& outadjMask);
+	ogdf::NodeArray<u_int64_t> computeOutadjMask();
+	ogdf::NodeArray<u_int64_t> computeInadjMask();
 
 public:
 	ogdf::Graph G;
 	// std::vector<ogdf::node> ID2node;
 	ogdf::NodeArray<int> node2ID;
-
 	std::vector<int> DS;
 	ogdf::NodeArray<bool> is_dominated;
 	ogdf::NodeArray<bool> is_subsumed;
 	ogdf::EdgeArray<ogdf::edge> reverse_edge;
+    std::hash<ogdf::node> nodehash;
 
 	Instance()
 		: node2ID(G, -1), is_dominated(G, false), is_subsumed(G, false), reverse_edge(G, nullptr) { }

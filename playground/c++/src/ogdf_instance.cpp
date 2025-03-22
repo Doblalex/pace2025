@@ -378,7 +378,11 @@ bool Instance::reductionBCTree() {
 }
 
 bool Instance::subsumptionCondition1(const ogdf::node& u, const ogdf::node& v,
-		const ogdf::NodeArray<bool>& adju) {
+		const ogdf::NodeArray<bool>& adju, const ogdf::NodeArray<u_int64_t>& outadjMask) {
+    auto uwithu = outadjMask[u] | ( 1ull << (nodehash(u) & 63ull));
+	if ((uwithu | outadjMask[v]) != uwithu) {
+		return false;
+	}
 	bool cond = true;
 	forAllOutAdj(v, [&](ogdf::adjEntry adj) {
 		if (adj->twinNode() != u && !adju[adj->twinNode()]) {
@@ -396,9 +400,14 @@ bool Instance::subsumptionCondition2(const ogdf::node& u, const ogdf::node& v,
 }
 
 bool Instance::subsumptionCondition3(const ogdf::node& u, const ogdf::node& v,
-		ogdf::NodeArray<bool>& inadjv) {
+		ogdf::NodeArray<bool>& inadjv, const ogdf::NodeArray<u_int64_t>& inadjMask) {
 	if (is_dominated[v]) {
 		return true;
+	}
+    auto vwithv = inadjMask[v] | ( 1ull << (nodehash(v) & 63ull));
+    bool filter = true;
+	if ((inadjMask[u] | vwithv) != vwithv) {
+		filter = false;
 	}
 	bool cond = true;
 	forAllInAdj(v, [&](ogdf::adjEntry adj) {
@@ -427,6 +436,8 @@ bool Instance::reductionStrongSubsumption() {
 	ogdf::NodeArray<bool> outadju(G, false);
 	ogdf::NodeArray<bool> inadjv(G, false);
 	ogdf::NodeArray<ogdf::edge> theedge(G, nullptr);
+	auto outAdjMask = computeOutadjMask();
+	auto inAdjMask = computeInadjMask();
 	for (auto it = G.nodes.begin(); it != G.nodes.end(); --i) {
 		OGDF_ASSERT(i >= 0); // protect against endless loops
 		auto u = *it;
@@ -479,13 +490,14 @@ bool Instance::reductionStrongSubsumption() {
 			}
 			if (is_subsumed[u]) {
 				if (!is_subsumed[v]) {
-					if (subsumptionCondition1(u, v, outadju) && subsumptionCondition3(u, v, inadjv)) {
+					if (subsumptionCondition1(u, v, outadju, outAdjMask)
+							&& subsumptionCondition3(u, v, inadjv, inAdjMask)) {
 						log << "condition 3 applies, deleting " << node2ID[v] << std::endl;
 						safeDelete(v, it);
 						cnt_removed++;
 					}
 				} else {
-					if (subsumptionCondition3(u, v, inadjv)) {
+					if (subsumptionCondition3(u, v, inadjv, inAdjMask)) {
 						safeDelete(v, it);
 						log << "condition 4 applies, deleting" << node2ID[v] << std::endl;
 						cnt_removed++;
@@ -493,7 +505,8 @@ bool Instance::reductionStrongSubsumption() {
 				}
 			} else {
 				if (is_dominated[u] && !is_dominated[v]) {
-					if (subsumptionCondition1(u, v, outadju) && subsumptionCondition2(u, v, outadju)) {
+					if (subsumptionCondition2(u, v, outadju)
+							&& subsumptionCondition1(u, v, outadju, outAdjMask)) {
 						log << "condition 5 applies, deleting " << node2ID[v]
 							<< " and contracting edges" << std::endl;
 						forAllInAdj(v, [&](ogdf::adjEntry adj) {
@@ -514,22 +527,23 @@ bool Instance::reductionStrongSubsumption() {
 						safeDelete(v, it);
 						cnt_removed++;
 					}
-					// if (checkcond1,2) contract v into u and set u as undominated
 				} else if (is_dominated[v] && !is_subsumed[v]) {
-					if (subsumptionCondition1(u, v, outadju)) {
+					if (subsumptionCondition1(u, v, outadju, outAdjMask)) {
 						log << "condition 6 applies, deleting " << node2ID[v] << std::endl;
 						safeDelete(v, it);
 						cnt_removed++;
 					}
 				} else if (is_subsumed[v]) {
-					if (subsumptionCondition2(u, v, outadju) && subsumptionCondition3(u, v, inadjv)) {
+					if (subsumptionCondition2(u, v, outadju)
+							&& subsumptionCondition3(u, v, inadjv, inAdjMask)) {
 						log << "condition 7 applies, deleting " << node2ID[v] << std::endl;
 						safeDelete(v, it);
 						cnt_removed++;
 					}
 				} else {
-					if (subsumptionCondition1(u, v, outadju) && subsumptionCondition2(u, v, outadju)
-							&& subsumptionCondition3(u, v, inadjv)) {
+					if (subsumptionCondition2(u, v, outadju)
+							&& subsumptionCondition1(u, v, outadju, outAdjMask)
+							&& subsumptionCondition3(u, v, inadjv, inAdjMask)) {
 						log << "condition 8 applies, deleting " << node2ID[v] << std::endl;
 						safeDelete(v, it);
 						cnt_removed++;
@@ -553,6 +567,7 @@ bool Instance::reductionSubsumption() {
 	int cnt_subsumed = 0;
 	int i = G.numberOfNodes();
 	ogdf::NodeArray<bool> outadju(G, false);
+    auto outAdjMask = computeOutadjMask();
 	for (auto it = G.nodes.begin(); it != G.nodes.end(); --i) {
 		OGDF_ASSERT(i >= 0); // protect against endless loops
 		auto u = *it;
@@ -582,12 +597,12 @@ bool Instance::reductionSubsumption() {
 			auto v = *it2;
 			++it2;
 			if (is_subsumed[v]) {
-				continue; // v is already subsumes
+				continue; // v is already subsumed
 			}
 			// neither u nor v are subsumed here
 			if (!(is_dominated[u] && !is_dominated[v])) {
 				// easy case, u can be taken into dominating set instead of v
-				if (subsumptionCondition1(u, v, outadju) && subsumptionCondition2(u, v, outadju)) {
+				if (subsumptionCondition2(u, v, outadju) && subsumptionCondition1(u, v, outadju, outAdjMask)) {
 					// log<<"Marking vertex "<<node2ID[v]<<" as subsumed"<<std::endl;
 					markSubsumed(v);
 					cnt_subsumed++;
@@ -605,4 +620,27 @@ bool Instance::reductionSubsumption() {
 		log << "Subsumption subsumed " << cnt_subsumed << " vertices" << std::endl;
 	}
 	return cnt_subsumed > 0;
+}
+
+ogdf::NodeArray<u_int64_t> Instance::computeOutadjMask() {
+	ogdf::NodeArray<u_int64_t> outadjMask(G, 0);
+	for (auto v : G.nodes) {
+		forAllOutAdj(v, [&](ogdf::adjEntry adj) {
+			outadjMask[v] |= (1ull << (nodehash(adj->twinNode()) & 63ull));
+			return true;
+		});
+	}
+
+	return outadjMask;
+}
+
+ogdf::NodeArray<u_int64_t> Instance::computeInadjMask() {
+	ogdf::NodeArray<u_int64_t> inadjMask(G, 0);
+	for (auto v : G.nodes) {
+		forAllInAdj(v, [&](ogdf::adjEntry adj) {            
+			inadjMask[v] |= (1ull << (nodehash(adj->twinNode()) & 63ull));
+			return true;
+		});
+	}
+	return inadjMask;
 }
