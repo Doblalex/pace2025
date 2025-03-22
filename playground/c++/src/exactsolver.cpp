@@ -2,164 +2,160 @@
 // #include "scip/scip.h"
 // #include "scip/scipdefplugins.h"
 #ifdef USE_GUROBI
-#include "gurobi_c++.h"
+#	include "gurobi_c++.h"
 #endif
 #include "EvalMaxSAT.h"
 #ifdef USE_ORTOOLS
-#include "ortools/linear_solver/linear_expr.h"
-#include "ortools/linear_solver/linear_solver.h"
+#	include "ortools/linear_solver/linear_expr.h"
+#	include "ortools/linear_solver/linear_solver.h"
 #endif
 
 #ifdef USE_GUROBI
 void solveGurobiExactIlp(Instance* instance, VertexList& dominatingSet) {
-    GRBEnv env;
-    GRBModel model(env);
+	GRBEnv env;
+	GRBModel model(env);
 
-    model.set(GRB_IntParam_LogToConsole, 1);   // Ensure logging is enabled
-    model.set(GRB_IntParam_DisplayInterval, 1); // Log progress frequently
-    model.set(GRB_DoubleParam_Heuristics, 0.0);  // Disable heuristics entirely
-    model.set(GRB_DoubleParam_NoRelHeurTime, 0); // Disable NoRel heuristic
+	model.set(GRB_IntParam_LogToConsole, 1); // Ensure logging is enabled
+	model.set(GRB_IntParam_DisplayInterval, 1); // Log progress frequently
+	model.set(GRB_DoubleParam_Heuristics, 0.0); // Disable heuristics entirely
+	model.set(GRB_DoubleParam_NoRelHeurTime, 0); // Disable NoRel heuristic
 
-    // model.set(GRB_IntParam_PoolSearchMode, 2); // Store multiple solutions
-    // model.set(GRB_DoubleParam_Heuristics, 0.5); // Increase heuristic effort (optional)
-    // model.set(GRB_DoubleParam_NoRelHeurTime, 10); // Allow NoRel heuristic extra time
-
-
+	// model.set(GRB_IntParam_PoolSearchMode, 2); // Store multiple solutions
+	// model.set(GRB_DoubleParam_Heuristics, 0.5); // Increase heuristic effort (optional)
+	// model.set(GRB_DoubleParam_NoRelHeurTime, 10); // Allow NoRel heuristic extra time
 
 
-    debug("Solving ILP witn number of nodes", instance->n);
+	debug("Solving ILP witn number of nodes", instance->n);
 
-    static vector<GRBVar> varmap(instance->props->n+1);
-    vector<GRBVar> SCIPVars;
+	static vector<GRBVar> varmap(instance->props->n + 1);
+	vector<GRBVar> SCIPVars;
 
-    BGL_FORALL_VERTICES(v, *instance->G, Graph) {
-        if ((*instance->G)[v].can_be_dominating_set == false) {
-            continue;
-        }
-        GRBVar var;
-        var = model.addVar(0, 1, 1, GRB_BINARY);
-        varmap[(*instance->G)[v].id] = var;
-        SCIPVars.push_back(var);
-    }
-    BGL_FORALL_VERTICES(v, *instance->G, Graph) {
-        if ((*instance->G)[v].is_dominated) {
-            continue;
-        }
-        GRBLinExpr expr;
-        if ((*instance->G)[v].can_be_dominating_set) {
-            expr += varmap[(*instance->G)[v].id];
-        }
-        BGL_FORALL_ADJ_T(v, w, *instance->G, Graph) {
-            if ((*instance->G)[w].can_be_dominating_set) {
-                expr += varmap[(*instance->G)[w].id];
-            }
-        }
-        model.addConstr(expr >= 1);
-    }
+	BGL_FORALL_VERTICES(v, *instance->G, Graph) {
+		if ((*instance->G)[v].can_be_dominating_set == false) {
+			continue;
+		}
+		GRBVar var;
+		var = model.addVar(0, 1, 1, GRB_BINARY);
+		varmap[(*instance->G)[v].id] = var;
+		SCIPVars.push_back(var);
+	}
+	BGL_FORALL_VERTICES(v, *instance->G, Graph) {
+		if ((*instance->G)[v].is_dominated) {
+			continue;
+		}
+		GRBLinExpr expr;
+		if ((*instance->G)[v].can_be_dominating_set) {
+			expr += varmap[(*instance->G)[v].id];
+		}
+		BGL_FORALL_ADJ_T(v, w, *instance->G, Graph) {
+			if ((*instance->G)[w].can_be_dominating_set) {
+				expr += varmap[(*instance->G)[w].id];
+			}
+		}
+		model.addConstr(expr >= 1);
+	}
 
-    model.optimize();
+	model.optimize();
 }
 #endif
 
-void solveEvalMaxSat(Instance* instance, VertexList& dominatingSet){
+void solveEvalMaxSat(Instance* instance, VertexList& dominatingSet) {
+	EvalMaxSAT solver;
 
-    EvalMaxSAT solver;
+	debug("Solving ILP witn number of nodes", instance->n);
 
-    debug("Solving ILP witn number of nodes", instance->n);
+	static vector<int> varmap(instance->props->n + 1);
 
-    static vector<int> varmap(instance->props->n+1);
+	BGL_FORALL_VERTICES(v, *instance->G, Graph) {
+		if ((*instance->G)[v].can_be_dominating_set == false) {
+			continue;
+		}
+		auto var = solver.newVar();
+		varmap[(*instance->G)[v].id] = var;
+		solver.addClause({-var}, 1); // soft clause
+	}
 
-    BGL_FORALL_VERTICES(v, *instance->G, Graph) {
-        if ((*instance->G)[v].can_be_dominating_set == false) {
-            continue;
-        }
-        auto var = solver.newVar();
-        varmap[(*instance->G)[v].id] = var;
-        solver.addClause({-var}, 1); // soft clause
-    }
-
-    BGL_FORALL_VERTICES(v, *instance->G, Graph) {
-        if ((*instance->G)[v].is_dominated) {
-            continue;
-        }
-        vector<int> clause;
-        if ((*instance->G)[v].can_be_dominating_set) {
-            clause.push_back(varmap[(*instance->G)[v].id]);
-        }
-        BGL_FORALL_ADJ_T(v, w, *instance->G, Graph) {
-            if ((*instance->G)[w].can_be_dominating_set) {
-                clause.push_back(varmap[(*instance->G)[w].id]);
-            }
-        }
-        solver.addClause(clause); //hard clause
-    }
-    solver.setTargetComputationTime(10*60);
-    bool solved = solver.solve();
-    debug(solved);
-    BGL_FORALL_VERTICES(v, *instance->G, Graph) {
-        if ((*instance->G)[v].can_be_dominating_set) {       
-            if (solver.getValue(varmap[(*instance->G)[v].id])) {                
-                dominatingSet.push_back((*instance->G)[v].id);
-            }
-        }
-    }
+	BGL_FORALL_VERTICES(v, *instance->G, Graph) {
+		if ((*instance->G)[v].is_dominated) {
+			continue;
+		}
+		vector<int> clause;
+		if ((*instance->G)[v].can_be_dominating_set) {
+			clause.push_back(varmap[(*instance->G)[v].id]);
+		}
+		BGL_FORALL_ADJ_T(v, w, *instance->G, Graph) {
+			if ((*instance->G)[w].can_be_dominating_set) {
+				clause.push_back(varmap[(*instance->G)[w].id]);
+			}
+		}
+		solver.addClause(clause); //hard clause
+	}
+	solver.setTargetComputationTime(10 * 60);
+	bool solved = solver.solve();
+	debug(solved);
+	BGL_FORALL_VERTICES(v, *instance->G, Graph) {
+		if ((*instance->G)[v].can_be_dominating_set) {
+			if (solver.getValue(varmap[(*instance->G)[v].id])) {
+				dominatingSet.push_back((*instance->G)[v].id);
+			}
+		}
+	}
 }
 
 #ifdef USE_ORTOOLS
 void solveCPSat(Instance* instance, VertexList& dominatingSet) {
-    using namespace operations_research;
-    debug("Solving ILP witn number of nodes", instance->n);
+	using namespace operations_research;
+	debug("Solving ILP witn number of nodes", instance->n);
 
-    std::unique_ptr<MPSolver> solver(MPSolver::CreateSolver("CP-SAT"));
-    if (!solver) {
-        debug("solver not available");
-        return;
-    }
+	std::unique_ptr<MPSolver> solver(MPSolver::CreateSolver("CP-SAT"));
+	if (!solver) {
+		debug("solver not available");
+		return;
+	}
 
 
+	static vector<MPVariable*> varmap(instance->props->n + 1);
+	LinearExpr obj;
 
-    static vector<MPVariable*> varmap(instance->props->n+1);
-    LinearExpr obj;
+	BGL_FORALL_VERTICES(v, *instance->G, Graph) {
+		if ((*instance->G)[v].can_be_dominating_set == false) {
+			continue;
+		}
+		auto var = solver->MakeBoolVar("");
+		varmap[(*instance->G)[v].id] = var;
+		obj += var;
+	}
+	MPObjective* const objective = solver->MutableObjective();
+	objective->MinimizeLinearExpr(obj);
 
-    BGL_FORALL_VERTICES(v, *instance->G, Graph) {
-        if ((*instance->G)[v].can_be_dominating_set == false) {
-            continue;
-        }
-        auto var = solver->MakeBoolVar("");
-        varmap[(*instance->G)[v].id] = var;
-        obj += var;
-    }
-    MPObjective* const objective = solver->MutableObjective();
-    objective->MinimizeLinearExpr(obj);
-
-    BGL_FORALL_VERTICES(v, *instance->G, Graph) {
-        if ((*instance->G)[v].is_dominated) {
-            continue;
-        }
-        LinearExpr expr;
-        if ((*instance->G)[v].can_be_dominating_set) {
-            expr += varmap[(*instance->G)[v].id];
-        }
-        BGL_FORALL_ADJ_T(v, w, *instance->G, Graph) {
-            if ((*instance->G)[w].can_be_dominating_set) {
-                expr += varmap[(*instance->G)[w].id];
-            }
-        }
-        solver->MakeRowConstraint(expr >= 1);
-    }
-    // solver->EnableOutput();
-    solver->SetNumThreads(1);
-    solver->EnableOutput();
-    const MPSolver::ResultStatus result_status = solver->Solve();
-    // bool solved = solver.solve();
-    // debug(solved);
-    BGL_FORALL_VERTICES(v, *instance->G, Graph) {
-        if ((*instance->G)[v].can_be_dominating_set) {       
-            if (varmap[(*instance->G)[v].id]->solution_value() > 0.5) {                
-                dominatingSet.push_back((*instance->G)[v].id);
-            }
-        }
-    }
+	BGL_FORALL_VERTICES(v, *instance->G, Graph) {
+		if ((*instance->G)[v].is_dominated) {
+			continue;
+		}
+		LinearExpr expr;
+		if ((*instance->G)[v].can_be_dominating_set) {
+			expr += varmap[(*instance->G)[v].id];
+		}
+		BGL_FORALL_ADJ_T(v, w, *instance->G, Graph) {
+			if ((*instance->G)[w].can_be_dominating_set) {
+				expr += varmap[(*instance->G)[w].id];
+			}
+		}
+		solver->MakeRowConstraint(expr >= 1);
+	}
+	// solver->EnableOutput();
+	solver->SetNumThreads(1);
+	solver->EnableOutput();
+	const MPSolver::ResultStatus result_status = solver->Solve();
+	// bool solved = solver.solve();
+	// debug(solved);
+	BGL_FORALL_VERTICES(v, *instance->G, Graph) {
+		if ((*instance->G)[v].can_be_dominating_set) {
+			if (varmap[(*instance->G)[v].id]->solution_value() > 0.5) {
+				dominatingSet.push_back((*instance->G)[v].id);
+			}
+		}
+	}
 }
 #endif
 
@@ -253,4 +249,3 @@ void solveCPSat(Instance* instance, VertexList& dominatingSet) {
 // void solveScipExactILP(Instance* instance, VertexList& dominatingSet) {
 //     solveScip(instance, dominatingSet);
 // }
-

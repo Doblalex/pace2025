@@ -5,6 +5,7 @@
 ogdf::Logger logger;
 
 ogdf::node internal::idn(ogdf::node n) { return n; }
+
 ogdf::edge internal::ide(ogdf::edge n) { return n; }
 
 int main(int argc, char** argv) {
@@ -20,7 +21,7 @@ int main(int argc, char** argv) {
 		std::cerr << v << "\n";
 	}
 	std::cerr << "c </DS vertices>\nc DS solution size: " << I.DS.size() << "\nc solve time: "
-			  << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count()
-			  << "ms" << std::endl;
+			  << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms"
+			  << std::endl;
 	return 0;
 }
