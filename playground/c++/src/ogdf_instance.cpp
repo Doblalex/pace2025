@@ -208,9 +208,14 @@ std::list<Instance> Instance::decomposeConnectedComponents() {
 	return instances;
 }
 
+static int max_changes = 11;
+
 bool Instance::reductionBCTree() {
 	enum class Replaced { Unchanged, Dominated, Removed };
 
+	if (max_changes == 0) {
+		return false;
+	}
 	int orig_N = G.numberOfNodes(), orig_DS = DS.size();
 	ogdf::BCTree BC(G);
 	ogdf::NodeArray<Replaced> replaced(BC.bcTree(), Replaced::Unchanged);
@@ -259,7 +264,8 @@ bool Instance::reductionBCTree() {
 			ogdf::node cv = BC.original(h_cv);
 			OGDF_ASSERT(BC.bcproper(cv) == parent);
 
-			if (replaced[parent] == Replaced::Removed) {
+			// TODO what if cv already dominated / subsumed / replaced[parent] == Replaced::Dominated?
+			if (replaced[parent] != Replaced::Unchanged || is_dominated[cv] || is_subsumed[cv]) {
 				continue;
 			}
 #ifdef OGDF_DEBUG
@@ -286,7 +292,6 @@ bool Instance::reductionBCTree() {
 			}
 #endif
 
-			// TODO what if cv already dominated / subsumed / replaced[parent] == Replaced::Dominated?
 			Instance I1;
 			nMap1.fillWithDefault();
 			eMap1.fillWithDefault();
@@ -343,6 +348,13 @@ bool Instance::reductionBCTree() {
 				if (n != cv) {
 					safeDelete(n);
 				}
+			}
+
+			if (max_changes > 0) {
+				max_changes--;
+			}
+			if (max_changes == 0) {
+				break;
 			}
 		}
 	}
