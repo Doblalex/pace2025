@@ -132,6 +132,7 @@ public:
 
 	void safeDelete(ogdf::node n) {
 		// ID2node[node2ID[n]] = nullptr;
+		logd << "\tsafe delete " << node2ID[n] << std::endl;
 		G.delNode(n);
 #ifdef OGDF_DEBUG
 		G.consistencyCheck();
@@ -152,15 +153,38 @@ public:
 		addToDominatingSet(v, it);
 	}
 
+	template<typename IT>
+	void addToDominatingSet(IT begin, IT end, std::string comment = "") {
+#ifdef OGDF_DEBUG
+		int before = DS.size();
+		auto& l = logger.lout(ogdf::Logger::Level::Minor) << "Insert " << comment << "into DS:";
+		for (auto it = begin; it != end; ++it) {
+			l << " " << *it;
+		}
+		l << std::endl;
+		DS.insert(DS.end(), begin, end);
+		log << "Updated DS" << (comment.empty() ? "" : "with ") << comment << ": " << before << "+"
+			<< (DS.size() - before) << "=" << DS.size() << std::endl;
+#else
+		DS.insert(DS.end(), begin, end);
+#endif
+	}
+
 	// XXX not using any shortcuts here, as they often hurt in other places (like storing the global universal_in vertex)
 	void addToDominatingSet(ogdf::node v, ogdf::Graph::node_iterator& it) {
 		OGDF_ASSERT(!is_subsumed[v]);
+		logd << "\tadd to DS " << node2ID[v] << std::endl;
 		DS.push_back(node2ID[v]);
 		forAllOutAdj(v, [&](ogdf::adjEntry adj) {
 			markDominated(adj->twinNode());
 			return true;
 		});
-		safeDelete(v, it);
+		{
+			auto gll = logger.globalLogLevel();
+			logger.globalLogLevel(ogdf::Logger::Level::Alarm);
+			safeDelete(v, it);
+			logger.globalLogLevel(gll);
+		}
 	}
 
 	void markDominated(ogdf::node v) {

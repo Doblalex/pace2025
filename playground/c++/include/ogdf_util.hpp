@@ -11,10 +11,16 @@ extern ogdf::Logger logger;
 #	define log   \
 		if (true) \
 		logger.lout()
+#	define logd   \
+		if (true) \
+		logger.lout(ogdf::Logger::Level::Minor)
 #else
 #	define log    \
 		if (false) \
 		logger.lout()
+#	define logd   \
+		if (false) \
+		logger.lout(ogdf::Logger::Level::Minor)
 #endif
 
 #ifdef OGDF_DEBUG

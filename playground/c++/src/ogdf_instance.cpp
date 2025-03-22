@@ -112,7 +112,7 @@ void Instance::dumpBCTree() {
 }
 
 bool Instance::reductionExtremeDegrees() {
-	int removedvertices = 0, addedtoDS = 0;
+	int orig_N = G.numberOfNodes(), orig_DS = DS.size();
 	bool reduced = false, has_undom = false;
 	ogdf::node universal_in = nullptr;
 	int i = G.numberOfNodes();
@@ -125,14 +125,11 @@ bool Instance::reductionExtremeDegrees() {
 		// isolated
 		if (n->indeg() == 0 && !is_dominated[n]) {
 			addToDominatingSet(n, it);
-			addedtoDS++;
-			removedvertices++;
 			reduced = true;
 			continue;
 		}
 		if (n->outdeg() == 0 && is_dominated[n]) {
 			safeDelete(n, it);
-			removedvertices++;
 			reduced = true;
 			continue;
 		}
@@ -150,8 +147,6 @@ bool Instance::reductionExtremeDegrees() {
 			if (u == universal_in) {
 				universal_in = nullptr;
 			}
-			removedvertices++;
-			addedtoDS++;
 			reduced = true;
 			continue;
 		}
@@ -162,9 +157,7 @@ bool Instance::reductionExtremeDegrees() {
 				safeDelete(n, it);
 			} else {
 				addToDominatingSet(n, it);
-				addedtoDS++;
 			}
-			removedvertices++;
 			reduced = true;
 			continue;
 		}
@@ -172,8 +165,6 @@ bool Instance::reductionExtremeDegrees() {
 		// universal
 		if (n->outdeg() == G.numberOfNodes() - 1) {
 			addToDominatingSet(n, it);
-			removedvertices++;
-			addedtoDS++;
 			G.clear();
 			return true;
 		}
@@ -187,18 +178,16 @@ bool Instance::reductionExtremeDegrees() {
 	if (universal_in != nullptr) {
 		// XXX we need to make sure that the processing of any later vertex hasn't accidentally also deleted universal_in,
 		// so all reduction short-cuts for mark*/addToDS functions are turned off for now
-		removedvertices++;
 		if (has_undom) {
 			safeDelete(universal_in);
 		} else {
 			addToDominatingSet(universal_in);
-			addedtoDS++;
 		}
 		reduced = true;
 	}
 	if (reduced) {
-		log << "removed " << removedvertices << " vertices, added " << addedtoDS << " to DS."
-			<< std::endl;
+		log << "Simple reduction removed " << (orig_N - G.numberOfNodes()) << " vertices, added "
+			<< (DS.size() - orig_DS) << " to DS." << std::endl;
 	}
 	return reduced;
 }
@@ -222,6 +211,7 @@ std::list<Instance> Instance::decomposeConnectedComponents() {
 bool Instance::reductionBCTree() {
 	enum class Replaced { Unchanged, Dominated, Removed };
 
+	int orig_N = G.numberOfNodes(), orig_DS = DS.size();
 	ogdf::BCTree BC(G);
 	ogdf::NodeArray<Replaced> replaced(BC.bcTree(), Replaced::Unchanged);
 	const auto original_n = [&BC](ogdf::node n) {
@@ -316,7 +306,7 @@ bool Instance::reductionBCTree() {
 					<< "Short-cut fixing ds_v(B) (containing CV) as DS, "
 					<< "removing B and also CV." << std::endl;
 				replaced[parent] = Replaced::Removed;
-				DS.insert(DS.end(), I1.DS.begin(), I1.DS.end());
+				addToDominatingSet(I1.DS.begin(), I1.DS.end(), "ds(B)=ds_v(B)");
 			} else {
 				Instance I2;
 				nMap2.fillWithDefault();
@@ -338,12 +328,12 @@ bool Instance::reductionBCTree() {
 					log << "I1<I2: Found ds(B) < ds_v(B), so fixing ds(B) (not containing CV) as part of DS, "
 						<< "removing B and marking CV as dominated." << std::endl;
 					replaced[parent] = Replaced::Dominated;
-					DS.insert(DS.end(), I1.DS.begin(), I1.DS.end());
+					addToDominatingSet(I1.DS.begin(), I1.DS.end(), "ds(B)");
 				} else {
 					log << "I1=I2: Found ds(B) = ds_v(B), so fixing ds_v(B) (containing CV) as DS, "
 						<< "removing B and also CV." << std::endl;
 					replaced[parent] = Replaced::Removed;
-					DS.insert(DS.end(), I2.DS.begin(), I2.DS.end());
+					addToDominatingSet(I2.DS.begin(), I2.DS.end(), "ds_v(B)");
 				}
 			}
 
@@ -379,11 +369,10 @@ bool Instance::reductionBCTree() {
 				++r;
 			}
 		}
-	}
-	if (r + d > 0) {
 		log << "BCTree reduction removed " << r << " cut-vertices and marked " << d
-			<< " as dominated.\n"
-			<< std::endl;
+			<< " as dominated." << std::endl;
+		log << "In total, removed " << (orig_N - G.numberOfNodes()) << " vertices and added "
+			<< (DS.size() - orig_DS) << " to DS." << std::endl;
 	}
 	return changed;
 }

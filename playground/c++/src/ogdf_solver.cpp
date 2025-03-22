@@ -34,12 +34,8 @@ void reduceAndSolve(Instance& I, int d) {
 
 				// and now recurse
 				reduceAndSolve(comp, d + 1);
-				log << "DS before adding connected component " << c << ": " << I.DS.size()
-					<< std::endl;
-				log << "DS of connected component " << c << ": " << comp.DS.size() << std::endl;
-				I.DS.insert(I.DS.end(), comp.DS.begin(), comp.DS.end());
-				log << "DS after adding connected component " << c << ": " << I.DS.size()
-					<< std::endl;
+				I.addToDominatingSet(comp.DS.begin(), comp.DS.end(),
+						"connected component " + std::to_string(c));
 			}
 			return;
 		}

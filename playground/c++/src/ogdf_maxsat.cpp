@@ -36,14 +36,17 @@ void solveEvalMaxSat(Instance& I) {
 	// std::cout.setstate(std::ios::failbit); // https://stackoverflow.com/a/8246430
 	bool solved = solver.solve();
 	// std::cout.clear();
-	log << "Solving result: " << solved << std::endl;
-	log << "Old DS size: " << I.DS.size() << std::endl;
+	int before = I.DS.size();
+	auto& l = logger.lout(ogdf::Logger::Level::Minor) << "Add to DS:";
 	for (auto v : I.G.nodes) {
 		if (!I.is_subsumed[v]) {
 			if (solver.getValue(varmap[v])) {
 				I.DS.push_back(I.node2ID[v]);
+				l << " " << I.node2ID[n];
 			}
 		}
 	}
-	log << "New DS size: " << I.DS.size() << std::endl;
+	l << "\n";
+	log << "Updated DS (solved " << solved << "): " << before << "+" << (I.DS.size() - before)
+		<< "=" << I.DS.size() << std::endl;
 }
