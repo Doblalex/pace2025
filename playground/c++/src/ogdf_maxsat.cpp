@@ -33,9 +33,9 @@ void solveEvalMaxSat(Instance& I) {
 		solver.addClause(clause); //hard clause
 	}
 	solver.setTargetComputationTime(10 * 60);
-	// std::cout.setstate(std::ios::failbit); // https://stackoverflow.com/a/8246430
+	std::cout.setstate(std::ios::failbit); // https://stackoverflow.com/a/8246430
 	bool solved = solver.solve();
-	// std::cout.clear();
+	std::cout.clear();
 	int before = I.DS.size();
 	auto& l = logger.lout(ogdf::Logger::Level::Minor) << "Add to DS:";
 	for (auto v : I.G.nodes) {
