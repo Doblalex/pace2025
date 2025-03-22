@@ -40,7 +40,7 @@ int main(int argc, char** argv) {
 
 #ifdef OGDF_DEBUG
 	for (auto v : I.DS) {
-		I2.addToDominatingSet(nMap[v]);
+		I2.addToDominatingSet(nMap[ID2node.at(v)]);
 	}
 
 	int undom = 0;
