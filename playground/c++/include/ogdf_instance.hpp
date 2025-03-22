@@ -116,7 +116,11 @@ public:
         }
     }
 
-    void read(std::istream &is);
+    void read(std::istream &is) {
+        std::vector<ogdf::node> ID2node;
+        read(is, ID2node);
+    }
+    void read(std::istream &is, std::vector<ogdf::node>& ID2node);
 
     void dumpBCTree();
 

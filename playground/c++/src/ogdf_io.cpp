@@ -1,6 +1,6 @@
 #include "ogdf_instance.hpp"
 
-void Instance::read(std::istream &is) {
+void Instance::read(std::istream &is, std::vector<ogdf::node>& ID2node) {
     unsigned int n, m;
     std::string s;
     std::string line;
@@ -13,7 +13,7 @@ void Instance::read(std::istream &is) {
     iss >> n >> m;
 
     clear();
-    std::vector<ogdf::node> ID2node; // ID2node.clear();
+    ID2node.clear();
     ID2node.reserve(n + 1);
     ID2node.push_back(nullptr);
     for (int i = 1; i <= n; i++) {
