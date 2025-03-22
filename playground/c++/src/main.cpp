@@ -25,9 +25,9 @@ void recursiveReduction(Instance* instance, VertexList& dominatingSet) {
 
     // // TODO: reduction when there is only one neighbor that can dominate me
 
-    // if (instance->n == 0) {
-    //     return;
-    // }
+    if (instance->n == 0) {
+        return;
+    }
 
     if (reductionIsolated(instance, dominatingSet)) {
         recursiveReduction(instance, dominatingSet);
@@ -63,19 +63,19 @@ void recursiveReduction(Instance* instance, VertexList& dominatingSet) {
         return;
     }
 
-    // if (reductionDomination(instance)) {
-    //     recursiveReduction(instance, dominatingSet);
-    //     return;
-    // }
+    if (reductionDomination(instance)) {
+        recursiveReduction(instance, dominatingSet);
+        return;
+    }
 
-    // if (reductionByCanBeDominatingSet(instance, dominatingSet)) {
-    //     recursiveReduction(instance, dominatingSet);
-    //     return;
-    // }
-    // if (reductionDominationPaper(instance, dominatingSet)) {
-    //     recursiveReduction(instance, dominatingSet);
-    //     return;
-    // }
+    if (reductionByCanBeDominatingSet(instance, dominatingSet)) {
+        recursiveReduction(instance, dominatingSet);
+        return;
+    }
+    if (reductionDominationPaper(instance, dominatingSet)) {
+        recursiveReduction(instance, dominatingSet);
+        return;
+    }
 
 
     // dumpBCTree(instance, dominatingSet);

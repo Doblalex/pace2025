@@ -486,7 +486,7 @@ bool Instance::reductionStrongSubsumption() {
                 else {
                     if (subsumptionCondition3(u, v, inadjv)) {
                         safeDelete(v, it);
-                        log<<"condition 4 applies"<<std::endl;
+                        log<<"condition 4 applies, deleting "<<node2ID[v]<<std::endl;
                         cnt_removed++;  
                     }
                 }

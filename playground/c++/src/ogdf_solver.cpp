@@ -37,8 +37,8 @@ void reduceAndSolve(Instance &I, int d) {
             }
             return;
         }
-        if (I.reductionStrongSubsumption()) changed = true;
-        if (I.reductionSubsumption()) changed = true;
+        if (I.reductionStrongSubsumption()) changed = true; // TODO: this rule is still slow for large graphs
+        if (I.reductionSubsumption()) changed = true; // TODO: this rule is still slow for large graphs
         // if (I.reductionBCTree()) changed = true;
 
         OGDF_ASSERT(!changed || I.G.numberOfNodes() < n|| I.G.numberOfEdges() < m);
