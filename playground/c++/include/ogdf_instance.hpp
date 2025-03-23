@@ -21,7 +21,7 @@ public:
 	ogdf::NodeArray<bool> is_dominated;
 	ogdf::NodeArray<bool> is_subsumed;
 	ogdf::EdgeArray<ogdf::edge> reverse_edge;
-    std::hash<ogdf::node> nodehash;
+	std::hash<ogdf::node> nodehash;
 
 	Instance()
 		: node2ID(G, -1), is_dominated(G, false), is_subsumed(G, false), reverse_edge(G, nullptr) { }
@@ -159,7 +159,8 @@ public:
 	void addToDominatingSet(IT begin, IT end, std::string comment = "") {
 #ifdef OGDF_DEBUG
 		int before = DS.size();
-		auto& l = logger.lout(ogdf::Logger::Level::Minor) << "Insert " << comment << "into DS:";
+		auto& l = logger.lout(ogdf::Logger::Level::Minor)
+				<< "Insert " << comment << (comment.empty() ? "" : " ") << "into DS:";
 		for (auto it = begin; it != end; ++it) {
 			l << " " << *it;
 		}
@@ -213,7 +214,7 @@ public:
 
 	std::list<Instance> decomposeConnectedComponents();
 
-	bool reductionBCTree();
+	bool reductionBCTree(int depth = 0);
 
 	std::pair<size_t, size_t> dominationStats() {
 		size_t can = 0, needs = 0;

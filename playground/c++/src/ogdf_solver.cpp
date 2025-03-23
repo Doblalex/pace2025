@@ -30,8 +30,6 @@ void reduceAndSolve(Instance& I, int d) {
 				ogdf::Logger::Indent _(logger);
 				++c;
 
-				// TODO run remaining reduction rules on all components?
-
 				// and now recurse
 				reduceAndSolve(comp, d + 1);
 				I.addToDominatingSet(comp.DS.begin(), comp.DS.end(),
@@ -39,13 +37,17 @@ void reduceAndSolve(Instance& I, int d) {
 			}
 			return;
 		}
-		if (I.reductionSubsumption()) {
-			changed = true; // TODO: this rule is still slow for large graphs
+
+		if (I.reductionBCTree(d)) {
+			changed = true;
+		} else {
+			if (I.reductionSubsumption()) {
+				changed = true;// TODO: this rule is still slow for large graphs
+			}
+			if (I.reductionStrongSubsumption()) {
+				changed = true;// TODO: this rule is still slow for large graphs
+			}
 		}
-		if (I.reductionStrongSubsumption()) {
-			changed = true; // TODO: this rule is still slow for large graphs
-		}
-		// if (I.reductionBCTree()) changed = true;
 
 		OGDF_ASSERT(!changed || I.G.numberOfNodes() < n || I.G.numberOfEdges() < m);
 		++i;
@@ -55,10 +57,10 @@ void reduceAndSolve(Instance& I, int d) {
 		log << "Reduced instance is empty with DS " << I.DS.size() << "!" << std::endl;
 		return;
 	}
+#ifdef OGDF_DEBUG
 	auto [can, need] = I.dominationStats();
 	log << "Reduced instance contains " << n << " nodes, " << m << " edges. " << need
 		<< " vertices need to be dominated, " << can << " are eligible for the DS." << std::endl;
-#ifdef OGDF_DEBUG
 	// I.dumpBCTree();
 #endif
 
