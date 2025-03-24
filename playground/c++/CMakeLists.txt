@@ -95,7 +95,7 @@ endif()
 
 # OR-TOOLS -----------------------------------------------------------------
 if(NOT USE_ORTOOLS)
-  set(USE_ORTOOLS ON)
+  set(USE_ORTOOLS OFF)
 endif()
 
 
