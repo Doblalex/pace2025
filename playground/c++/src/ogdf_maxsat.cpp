@@ -208,6 +208,10 @@ void solveEvalMaxSat(Instance& I) {
 void solvecpsat(Instance& I) {
 	using namespace operations_research;
 	std::unique_ptr<MPSolver> solver(MPSolver::CreateSolver("CP-SAT"));
+	if (!solver) {
+		log<<"solver not available"<<std::endl;
+		exit(1);
+	}
 	int before = I.DS.size();
 	log << "Solving MaxSat with " << I.G.numberOfNodes() << " nodes" << std::endl;
 	ogdf::NodeArray<MPVariable*> varmap(I.G, nullptr);
@@ -217,7 +221,7 @@ void solvecpsat(Instance& I) {
 			continue;
 		}
 		auto var = solver->MakeBoolVar("");
-		varmap[v] = var;
+		varmap[v] = var;		
 		obj += var;
 	}
 	MPObjective* const objective = solver->MutableObjective();
