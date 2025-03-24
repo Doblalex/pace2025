@@ -121,7 +121,14 @@ public:
 		read(is, ID2node);
 	}
 
+	void readhs(std::istream& is) {
+		std::vector<ogdf::node> ID2node;
+		readhs(is, ID2node);
+	}
+
 	void read(std::istream& is, std::vector<ogdf::node>& ID2node);
+
+	void readhs(std::istream& is, std::vector<ogdf::node>& ID2node);
 
 	void dumpBCTree();
 

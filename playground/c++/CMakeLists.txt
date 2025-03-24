@@ -37,9 +37,19 @@ set(OGDF_SOURCES
   src/ogdf_maxsat.cpp
 )
 
+set(OGDF_SOURCES_HS
+  src/ogdf_mainhs.cpp
+  src/ogdf_solver.cpp
+  src/ogdf_greedy.cpp
+  src/ogdf_instance.cpp
+  src/ogdf_io.cpp
+  src/ogdf_maxsat.cpp
+)
+
 add_executable(dsexact ${SOURCES})
 add_executable(ogdf_dsexact ${OGDF_SOURCES})
 add_executable(ogdf_validate src/ogdf_validator.cpp src/ogdf_io.cpp)
+add_executable(ogdf_hsexact ${OGDF_SOURCES_HS})
 
 # EVALMAXSAT ---------------------------------------------------------------
 set(localLibs
@@ -64,6 +74,7 @@ include_directories(${ZLIB_INCLUDE_DIR})
 
 include_directories(${PROJECT_SOURCE_DIR}/EvalMaxSAT)
 target_link_libraries(ogdf_dsexact ${localLibs} ${externLibs})
+target_link_libraries(ogdf_hsexact ${localLibs} ${externLibs})
 target_link_libraries(dsexact ${localLibs} ${externLibs})
 include_directories(${PROJECT_SOURCE_DIR}/include)
 # GUROBI -------------------------------------------------------------------
@@ -83,12 +94,16 @@ if(USE_GUROBI)
 endif()
 
 # OR-TOOLS -----------------------------------------------------------------
-set(USE_ORTOOLS OFF)
+if(NOT USE_ORTOOLS)
+  set(USE_ORTOOLS ON)
+endif()
 
 
 if(USE_ORTOOLS)
   find_package(ortools)
-  add_compile_definitions(USE_ORTOOLS)
+  target_compile_definitions(dsexact PUBLIC USE_ORTOOLS)
+  target_compile_definitions(ogdf_hsexact PUBLIC USE_ORTOOLS)
+  target_compile_definitions(ogdf_dsexact PUBLIC USE_ORTOOLS)
   IF(${ortools_FOUND})
     message(STATUS "ortools found")
   ELSE()
@@ -109,6 +124,8 @@ if(USE_ORTOOLS)
     include_directories(${PROJECT_SOURCE_DIR}/ext/or-tools/ortools)
   endif()
   target_link_libraries(dsexact ortools::ortools)
+  target_link_libraries(ogdf_hsexact ortools::ortools)
+  target_link_libraries(ogdf_dsexact ortools::ortools)
 endif()
 
 
@@ -134,5 +151,6 @@ if(USE_OGDF)
     include_directories(${PROJECT_SOURCE_DIR}/ext/ogdf/include)
   endif()
   target_link_libraries(ogdf_dsexact OGDF)
+  target_link_libraries(ogdf_hsexact OGDF)
   target_link_libraries(ogdf_validate OGDF)
 endif()

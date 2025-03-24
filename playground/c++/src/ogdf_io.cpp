@@ -38,3 +38,44 @@ void Instance::read(std::istream& is, std::vector<ogdf::node>& ID2node) {
 	OGDF_ASSERT(G.numberOfNodes() == n);
 	OGDF_ASSERT(G.numberOfEdges() == m * 2);
 }
+
+void Instance::readhs(std::istream& is, std::vector<ogdf::node>& ID2node) {
+	unsigned int n, m;
+	std::string s;
+	std::string line;
+	getline(is, line);
+	std::istringstream iss(line);
+	iss >> s;
+	OGDF_ASSERT(s == "p");
+	iss >> s;
+	OGDF_ASSERT(s == "hs");
+	iss >> n >> m;
+
+	clear();
+	ID2node.clear();
+	ID2node.reserve(n + m + 1);
+	ID2node.push_back(nullptr);
+	for (int i = 1; i <= n + m; i++) {
+		auto node = G.newNode(i);
+		ID2node.push_back(node);
+		node2ID[node] = i;
+		if (i <= n) {
+			is_dominated[node] = true;
+		} else {
+			is_subsumed[node] = true;
+		}
+	}
+	for (int i = 0; i < m; i++) {
+		getline(is, line);
+		if (line.empty() || line[0] == 'c') {
+			continue;
+		}
+		std::istringstream iss(line);
+		int u;
+		while (iss >> u) {
+			auto e = G.newEdge(ID2node[u], ogdf::Direction::before, ID2node[i + n + 1],
+					ogdf::Direction::after);
+			reverse_edge[e] = nullptr;
+		}
+	}
+}

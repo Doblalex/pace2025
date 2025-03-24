@@ -42,10 +42,10 @@ void reduceAndSolve(Instance& I, int d) {
 			changed = true;
 		} else {
 			if (I.reductionSubsumption()) {
-				changed = true;// TODO: this rule is still slow for large graphs
+				changed = true; // TODO: this rule is still slow for large graphs
 			}
 			if (I.reductionStrongSubsumption()) {
-				changed = true;// TODO: this rule is still slow for large graphs
+				changed = true; // TODO: this rule is still slow for large graphs
 			}
 		}
 
@@ -72,7 +72,7 @@ void reduceAndSolve(Instance& I, int d) {
 
 	// now to solving...
 #ifdef USE_ORTOOLS
-	solveCPSat(instance, dominatingSet);
+	solvecpsat(I);
 #else
 	solveEvalMaxSat(I);
 #endif

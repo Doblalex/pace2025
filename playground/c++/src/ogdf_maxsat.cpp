@@ -2,6 +2,11 @@
 
 #include "EvalMaxSAT.h"
 
+#ifdef USE_ORTOOLS
+#	include "ortools/linear_solver/linear_expr.h"
+#	include "ortools/linear_solver/linear_solver.h"
+#endif
+
 #define EMS_CACHE
 
 #ifdef EMS_CACHE
@@ -68,7 +73,7 @@ std::string get_filename(uint64_t hash, const std::string& ext, const std::strin
 	return fnstr.str();
 }
 
-bool try_load_solution(Instance& I, const std::vector<std::vector<int>> &hclauses, uint64_t hash,
+bool try_load_solution(Instance& I, const std::vector<std::vector<int>>& hclauses, uint64_t hash,
 		std::string& filename, std::string& filename_sat) {
 	int before = I.DS.size();
 	if (std::filesystem::exists(filename)) {
@@ -112,7 +117,6 @@ bool try_load_solution(Instance& I, const std::vector<std::vector<int>> &hclause
 	return false;
 }
 #endif
-
 
 
 void solveEvalMaxSat(Instance& I) {
@@ -160,11 +164,11 @@ void solveEvalMaxSat(Instance& I) {
 			return true;
 		});
 		solver.addClause(clause); //hard clause
-#ifndef EMS_CACHE
-	}
-#else
+#ifdef EMS_CACHE
 		std::sort(hclauses.back().begin(), hclauses.back().end());
+#endif
 	}
+#ifdef EMS_CACHE
 	std::sort(hclauses.begin(), hclauses.end());
 	uint64_t hash = hash_clauses(hclauses);
 	std::string filename = get_filename(hash, ".sol");
@@ -199,3 +203,58 @@ void solveEvalMaxSat(Instance& I) {
 	log << "Updated DS (solved " << solved << "): " << before << "+" << (I.DS.size() - before)
 		<< "=" << I.DS.size() << std::endl;
 }
+
+#ifdef USE_ORTOOLS
+void solvecpsat(Instance& I) {
+	using namespace operations_research;
+	std::unique_ptr<MPSolver> solver(MPSolver::CreateSolver("CP-SAT"));
+	int before = I.DS.size();
+	log << "Solving MaxSat with " << I.G.numberOfNodes() << " nodes" << std::endl;
+	ogdf::NodeArray<MPVariable*> varmap(I.G, nullptr);
+	LinearExpr obj;
+	for (auto v : I.G.nodes) {
+		if (I.is_subsumed[v]) {
+			continue;
+		}
+		auto var = solver->MakeBoolVar("");
+		varmap[v] = var;
+		obj += var;
+	}
+	MPObjective* const objective = solver->MutableObjective();
+	objective->MinimizeLinearExpr(obj);
+	std::vector<int> clause;
+	for (auto v : I.G.nodes) {
+		if (I.is_dominated[v]) {
+			continue;
+		}
+		LinearExpr expr;
+		if (!I.is_subsumed[v]) {
+			expr += varmap[v];
+		}
+		forAllInAdj(v, [&](ogdf::adjEntry adj) {
+			auto w = adj->twinNode();
+			if (!I.is_subsumed[w]) {
+				expr += varmap[w];
+			}
+			return true;
+		});
+		solver->MakeRowConstraint(expr >= 1); //hard clause
+	}
+
+	solver->EnableOutput();
+	const MPSolver::ResultStatus result_status = solver->Solve();
+
+	auto& l = logger.lout(ogdf::Logger::Level::Minor) << "Add to DS:";
+	for (auto v : I.G.nodes) {
+		if (!I.is_subsumed[v]) {
+			if (varmap[v]->solution_value() > 0.5) {
+				I.DS.push_back(I.node2ID[v]);
+				l << " " << I.node2ID[v];
+			}
+		}
+	}
+	l << "\n";
+	log << "Updated DS: " << before << "+" << (I.DS.size() - before) << "=" << I.DS.size()
+		<< std::endl;
+}
+#endif
