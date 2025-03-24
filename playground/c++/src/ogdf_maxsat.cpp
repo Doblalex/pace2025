@@ -256,5 +256,6 @@ void solvecpsat(Instance& I) {
 	l << "\n";
 	log << "Updated DS: " << before << "+" << (I.DS.size() - before) << "=" << I.DS.size()
 		<< std::endl;
+	solver->Clear();
 }
 #endif
