@@ -1,23 +1,14 @@
 #include "ogdf_maxsat.hpp"
 
 #include "EvalMaxSAT.h"
+#include "ogdf_util.hpp"
 
 #ifdef USE_ORTOOLS
 #	include "ortools/linear_solver/linear_expr.h"
 #	include "ortools/linear_solver/linear_solver.h"
 #endif
 
-#define EMS_CACHE
-
 #ifdef EMS_CACHE
-static const uint64_t FNV1a_64_SEED = 0xcbf29ce484222325UL;
-
-// https://stackoverflow.com/a/77342581
-inline void FNV1a_64_update(uint64_t& h, uint64_t v) {
-	h ^= v;
-	h *= 0x00000100000001B3UL;
-}
-
 uint64_t hash_clauses(const std::vector<std::vector<int>>& clauses) {
 	uint64_t hash = FNV1a_64_SEED;
 	OGDF_ASSERT(clauses.size() > 0);

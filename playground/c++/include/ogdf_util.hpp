@@ -105,3 +105,19 @@ ogdf::edge ide(ogdf::edge n);
 }
 
 #define SMALL_BLOCK 100
+
+constexpr uint64_t FNV1a_64_SEED = 0xcbf29ce484222325UL;
+
+// https://stackoverflow.com/a/77342581
+inline void FNV1a_64_update(uint64_t& h, uint64_t v) {
+	h ^= v;
+	h *= 0x00000100000001B3UL;
+}
+
+inline uint64_t FNV1a_64_one(uint64_t v) {
+	uint64_t ret = FNV1a_64_SEED;
+	FNV1a_64_update(ret, v);
+	return ret;
+}
+
+#define EMS_CACHE
