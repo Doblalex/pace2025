@@ -2,21 +2,29 @@ cmake_minimum_required(VERSION 3.18)
 
 project(Pace2025)
 
-option(CXX "enable C++ compilation" ON)
-# set(CMAKE_CXX_FLAGS "-Wall -Wextra")
-# set(CMAKE_CXX_FLAGS_DEBUG "-g")
-# set(CMAKE_CXX_FLAGS_RELEASE "-O3")
-
-set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
-set(CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address")
-
-if(CXX)
-    set (CMAKE_CXX_STANDARD 17)
-    enable_language(CXX)
+if(NOT CMAKE_BUILD_TYPE)
+  set(CMAKE_BUILD_TYPE Release CACHE STRING "Build Type" FORCE)
 endif()
 
-if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release)
+set(PACE_USE_GUROBI OFF CACHE BOOL "use installed Gurobi")
+set(PACE_USE_ORTOOLS OFF CACHE BOOL "use installed or subproject-built Gurobi")
+set(PACE_USE_OGDF ON CACHE BOOL "use installed or subproject-built Gurobi")
+set(PACE_USE_ASAN OFF CACHE BOOL "use the address sanitizer")
+set(PACE_ARCH "native" CACHE STRING "Target CPU (micro)architecture passed to the compiler via `-march`.")
+
+add_compile_options("-march=${PACE_ARCH}")
+
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+  message(STATUS "Building in Release mode")
+  set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON CACHE BOOL "INTERPROCEDURAL_OPTIMIZATION is enabled by default for release builds")
+  set(CMAKE_POLICY_DEFAULT_CMP0069 NEW CACHE STRING "INTERPROCEDURAL_OPTIMIZATION should no complain of OGDF's older CMake version")
+else()
+  message(STATUS "Building in non-Release mode ${CMAKE_BUILD_TYPE}")
+endif()
+
+if(PACE_USE_ASAN)
+  add_compile_options(-g -fno-omit-frame-pointer -fsanitize=address)
+  add_link_options(-fno-omit-frame-pointer -fsanitize=address)
 endif()
 
 set(SOURCES
@@ -29,7 +37,6 @@ set(SOURCES
 )
 
 set(OGDF_SOURCES
-  src/ogdf_main.cpp
   src/ogdf_solver.cpp
   src/ogdf_greedy.cpp
   src/ogdf_instance.cpp
@@ -37,19 +44,11 @@ set(OGDF_SOURCES
   src/ogdf_maxsat.cpp
 )
 
-set(OGDF_SOURCES_HS
-  src/ogdf_mainhs.cpp
-  src/ogdf_solver.cpp
-  src/ogdf_greedy.cpp
-  src/ogdf_instance.cpp
-  src/ogdf_io.cpp
-  src/ogdf_maxsat.cpp
-)
-
+include_directories(${PROJECT_SOURCE_DIR}/include)
 add_executable(dsexact ${SOURCES})
-add_executable(ogdf_dsexact ${OGDF_SOURCES})
+add_executable(ogdf_dsexact ${OGDF_SOURCES} src/ogdf_main.cpp)
 add_executable(ogdf_validate src/ogdf_validator.cpp src/ogdf_io.cpp)
-add_executable(ogdf_hsexact ${OGDF_SOURCES_HS})
+add_executable(ogdf_hsexact ${OGDF_SOURCES} src/ogdf_mainhs.cpp)
 
 # EVALMAXSAT ---------------------------------------------------------------
 set(localLibs
@@ -58,98 +57,82 @@ set(localLibs
     EvalMaxSAT
 )
 
-set(externLibs
-    z
-)
-
 FOREACH(localLib ${localLibs})
     if(NOT TARGET ${localLib})
         add_subdirectory(${PROJECT_SOURCE_DIR}/ext/EvalMaxSAT/lib/${localLib})
     endif()
 ENDFOREACH(localLib)
 
-
 find_package(ZLIB)
 include_directories(${ZLIB_INCLUDE_DIR})
 
 include_directories(${PROJECT_SOURCE_DIR}/EvalMaxSAT)
-target_link_libraries(ogdf_dsexact ${localLibs} ${externLibs})
-target_link_libraries(ogdf_hsexact ${localLibs} ${externLibs})
-target_link_libraries(dsexact ${localLibs} ${externLibs})
-include_directories(${PROJECT_SOURCE_DIR}/include)
-# GUROBI -------------------------------------------------------------------
-set(USE_GUROBI OFF)
+target_link_libraries(ogdf_dsexact ${localLibs} z)
+target_link_libraries(ogdf_hsexact ${localLibs} z)
+target_link_libraries(dsexact ${localLibs} z)
 
-if(USE_GUROBI)
+# GUROBI -------------------------------------------------------------------
+if(PACE_USE_GUROBI)
   add_compile_definitions(USE_GUROBI)
   list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/modules")
   find_package(GUROBI REQUIRED)
 
   include_directories(${GUROBI_INCLUDE_DIRS})
-  if(CXX)
-    target_link_libraries(dsexact optimized ${GUROBI_CXX_LIBRARY}
-      debug ${GUROBI_CXX_DEBUG_LIBRARY})
-  endif()
-  target_link_libraries(dsexact ${GUROBI_LIBRARY})
+  target_link_libraries(dsexact
+          general ${GUROBI_LIBRARY}
+          optimized ${GUROBI_CXX_LIBRARY}
+          debug ${GUROBI_CXX_DEBUG_LIBRARY})
+  target_link_libraries(dsexact)
 endif()
 
 # OR-TOOLS -----------------------------------------------------------------
-if(NOT USE_ORTOOLS)
-  set(USE_ORTOOLS OFF)
-endif()
-
-
-if(USE_ORTOOLS)
+if(PACE_USE_ORTOOLS)
   find_package(ortools)
-  target_compile_definitions(dsexact PUBLIC USE_ORTOOLS)
-  target_compile_definitions(ogdf_hsexact PUBLIC USE_ORTOOLS)
-  target_compile_definitions(ogdf_dsexact PUBLIC USE_ORTOOLS)
+  add_compile_definitions(USE_ORTOOLS)
   IF(${ortools_FOUND})
     message(STATUS "ortools found")
   ELSE()
-    set(BUILD_DEPS ON)
-    set(BUILD_DOC OFF)
-    set(BUILD_FLATZINC OFF)
-    set(BUILD_SAMPLES OFF)
-    set(BUILD_EXAMPLES OFF)
-    set(USE_HIGHS OFF)
-    set(USE_SCIP OFF)
-    set(USE_COINOR OFF)
-    set(USE_GLPK OFF)
-    set(USE_CPLEX OFF)
-    set(USE_DOTNET_6 OFF)
+    set(BUILD_DEPS ON CACHE BOOL "ortools-option")
+    set(BUILD_DOC OFF CACHE BOOL "ortools-option")
+    set(BUILD_FLATZINC OFF CACHE BOOL "ortools-option")
+    set(BUILD_SAMPLES OFF CACHE BOOL "ortools-option")
+    set(BUILD_EXAMPLES OFF CACHE BOOL "ortools-option")
+    set(USE_HIGHS OFF CACHE BOOL "ortools-option")
+    set(USE_SCIP OFF CACHE BOOL "ortools-option")
+    set(USE_COINOR OFF CACHE BOOL "ortools-option")
+    set(USE_GLPK OFF CACHE BOOL "ortools-option")
+    set(USE_CPLEX OFF CACHE BOOL "ortools-option")
+    set(USE_DOTNET_6 OFF CACHE BOOL "ortools-option")
+
     list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/ext/or-tools/cmake")
     add_subdirectory("${PROJECT_SOURCE_DIR}/ext/or-tools")
-
     include_directories(${PROJECT_SOURCE_DIR}/ext/or-tools/ortools)
   endif()
+
   target_link_libraries(dsexact ortools::ortools)
   target_link_libraries(ogdf_hsexact ortools::ortools)
   target_link_libraries(ogdf_dsexact ortools::ortools)
 endif()
 
-
 # OGDF -----------------------------------------------------------------
-set(USE_OGDF ON)
-
-
-if(USE_OGDF)
+if(PACE_USE_OGDF)
   find_package(OGDF)
   add_compile_definitions(USE_OGDF)
   IF(${OGDF_FOUND})
     message(STATUS "OGDF found")
   ELSE()
-    set(OGDF_MEMORY_MANAGER POOL_NTS)
-    # CMAKE_BUILD_TYPE=Release
-    # BUILD_SHARED_LIBS=OFF
-    # CMAKE_INTERPROCEDURAL_OPTIMIZATION=TRUE
-    # CMAKE_POLICY_DEFAULT_CMP0069=NEW
-    # OGDF_USE_ASSERT_EXCEPTIONS=OFF
+    set(OGDF_MEMORY_MANAGER POOL_NTS CACHE STRING "OGDF_MEMORY_MANAGER defaults to POOL_NTS")
+    if(CMAKE_BUILD_TYPE STREQUAL "Release")
+      set(OGDF_USE_ASSERT_EXCEPTIONS OFF CACHE BOOL "OGDF_USE_ASSERT_EXCEPTIONS defaults to OFF")
+    else()
+      set(OGDF_USE_ASSERT_EXCEPTIONS ON CACHE BOOL "OGDF_USE_ASSERT_EXCEPTIONS defaults to ON")
+    endif()
+
     list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/ext/ogdf/cmake")
     add_subdirectory("${PROJECT_SOURCE_DIR}/ext/ogdf")
-
     include_directories(${PROJECT_SOURCE_DIR}/ext/ogdf/include)
   endif()
+
   target_link_libraries(ogdf_dsexact OGDF)
   target_link_libraries(ogdf_hsexact OGDF)
   target_link_libraries(ogdf_validate OGDF)
