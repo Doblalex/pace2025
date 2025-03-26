@@ -113,8 +113,7 @@ void Instance::dumpBCTree() {
 
 bool Instance::reductionExtremeDegrees() {
 	int orig_N = G.numberOfNodes(), orig_DS = DS.size();
-	bool reduced = false, has_undom = false;
-	ogdf::node universal_in = nullptr;
+	bool reduced = false;
 	int i = G.numberOfNodes();
 	for (auto it = G.nodes.begin(); it != G.nodes.end(); --i) {
 		OGDF_ASSERT(i >= 0); // protect against endless loops
@@ -143,10 +142,6 @@ bool Instance::reductionExtremeDegrees() {
 			auto u = n->adjEntries.head()->twinNode();
 			OGDF_ASSERT(u != n);
 			addToDominatingSet(u, it);
-			// XXX here we are deleting another vertex than n
-			if (u == universal_in) {
-				universal_in = nullptr;
-			}
 			reduced = true;
 			continue;
 		}
@@ -161,29 +156,6 @@ bool Instance::reductionExtremeDegrees() {
 			reduced = true;
 			continue;
 		}
-
-		// universal
-		if (n->outdeg() == G.numberOfNodes() - 1) {
-			addToDominatingSet(n, it);
-			G.clear();
-			return true;
-		}
-		if (n->indeg() == G.numberOfNodes() - 1) {
-			universal_in = n;
-		} else if (!has_undom && !is_dominated[n]) {
-			has_undom = true;
-		}
-	}
-
-	if (universal_in != nullptr) {
-		// XXX we need to make sure that the processing of any later vertex hasn't accidentally also deleted universal_in,
-		// so all reduction short-cuts for mark*/addToDS functions are turned off for now
-		if (has_undom) {
-			safeDelete(universal_in);
-		} else {
-			addToDominatingSet(universal_in);
-		}
-		reduced = true;
 	}
 	if (reduced) {
 		log << "Simple reduction removed " << (orig_N - G.numberOfNodes()) << " vertices, added "
