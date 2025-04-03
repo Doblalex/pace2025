@@ -213,6 +213,40 @@ public:
 		});
 	}
 
+	size_t countCanDominate(ogdf::node v) {
+		if (!is_subsumed[v] && !is_dominated[v]) {
+			return v->outdeg() + 1;
+		} else {
+			return v->outdeg();
+		}
+	}
+
+	size_t countCanBeDominatedBy(ogdf::node v) {
+		if (!is_subsumed[v] && !is_dominated[v]) {
+			return v->indeg() + 1;
+		} else {
+			return v->indeg();
+		}
+	}
+
+	inline bool forAllCanDominate(ogdf::node v, std::function<bool(ogdf::node)> f) {
+		bool ret = forAllOutAdj(v, [&](ogdf::adjEntry adj) { return f(adj->twinNode()); });
+		if (ret && !is_subsumed[v] && !is_dominated[v]) {
+			return f(v);
+		} else {
+			return ret;
+		}
+	}
+
+	inline bool forAllCanBeDominatedBy(ogdf::node v, std::function<bool(ogdf::node)> f) {
+		bool ret = forAllInAdj(v, [&](ogdf::adjEntry adj) { return f(adj->twinNode()); });
+		if (ret && !is_subsumed[v] && !is_dominated[v]) {
+			return f(v);
+		} else {
+			return ret;
+		}
+	}
+
 	bool reductionExtremeDegrees();
 
 	bool reductionStrongSubsumption();
