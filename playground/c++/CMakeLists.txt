@@ -7,8 +7,8 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 set(PACE_USE_GUROBI OFF CACHE BOOL "use installed Gurobi")
-set(PACE_USE_ORTOOLS OFF CACHE BOOL "use installed or subproject-built Gurobi")
-set(PACE_USE_OGDF ON CACHE BOOL "use installed or subproject-built Gurobi")
+set(PACE_USE_ORTOOLS OFF CACHE BOOL "use installed or subproject-built ortools")
+set(PACE_USE_OGDF ON CACHE BOOL "use installed or subproject-built OGDF")
 set(PACE_USE_ASAN OFF CACHE BOOL "use the address sanitizer")
 set(PACE_ARCH "native" CACHE STRING "Target CPU (micro)architecture passed to the compiler via `-march`.")
 
