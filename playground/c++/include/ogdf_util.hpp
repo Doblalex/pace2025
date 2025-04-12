@@ -24,7 +24,7 @@ extern ogdf::Logger logger;
 #endif
 
 #ifdef OGDF_DEBUG
-inline void forAllOutAdj(ogdf::node v, std::function<bool(ogdf::adjEntry)> f) {
+inline bool forAllOutAdj(ogdf::node v, std::function<bool(ogdf::adjEntry)> f) {
 	OGDF_ASSERT(v->outdeg() == 0 || v->adjEntries.head()->isSource());
 	OGDF_ASSERT(v->indeg() == 0 || !v->adjEntries.tail()->isSource());
 	size_t c = 0;
@@ -49,9 +49,10 @@ inline void forAllOutAdj(ogdf::node v, std::function<bool(ogdf::adjEntry)> f) {
 		++c;
 	}
 	OGDF_ASSERT(adj_it == v->adjEntries.end());
+	return call;
 }
 
-inline void forAllInAdj(ogdf::node v, std::function<bool(ogdf::adjEntry)> f) {
+inline bool forAllInAdj(ogdf::node v, std::function<bool(ogdf::adjEntry)> f) {
 	OGDF_ASSERT(v->outdeg() == 0 || v->adjEntries.head()->isSource());
 	OGDF_ASSERT(v->indeg() == 0 || !v->adjEntries.tail()->isSource());
 	size_t c = 0;
@@ -76,26 +77,35 @@ inline void forAllInAdj(ogdf::node v, std::function<bool(ogdf::adjEntry)> f) {
 		++c;
 	}
 	OGDF_ASSERT(adj_it == v->adjEntries.rend());
+	return call;
 }
 #else
-inline void forAllOutAdj(ogdf::node v, std::function<bool(ogdf::adjEntry)> f) {
+inline bool forAllOutAdj(ogdf::node v, std::function<bool(ogdf::adjEntry)> f) {
 	for (auto adj_it = (v)->adjEntries.begin(); adj_it != (v)->adjEntries.end();) {
 		auto adj = *adj_it;
 		++adj_it;
-		if (!adj->isSource() || !f(adj)) {
-			break;
+		if (!adj->isSource()) {
+			return true;
+		}
+		if (!f(adj)) {
+			return false;
 		}
 	}
+	return true;
 }
 
-inline void forAllInAdj(ogdf::node v, std::function<bool(ogdf::adjEntry)> f) {
+inline bool forAllInAdj(ogdf::node v, std::function<bool(ogdf::adjEntry)> f) {
 	for (auto adj_it = (v)->adjEntries.rbegin(); adj_it != (v)->adjEntries.rend();) {
 		auto adj = *adj_it;
 		++adj_it;
-		if (adj->isSource() || !f(adj)) {
-			break;
+		if (!adj->isSource()) {
+			return true;
+		}
+		if (!f(adj)) {
+			return false;
 		}
 	}
+	return true;
 }
 #endif
 

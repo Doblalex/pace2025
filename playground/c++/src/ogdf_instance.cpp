@@ -414,7 +414,7 @@ bool Instance::subsumptionCondition3(const ogdf::node& u, const ogdf::node& v,
 	auto vwithv = inadjMask[v] | (1ull << (nodehash(v) & 63ull));
 	bool filter = true;
 	if ((inadjMask[u] | vwithv) != vwithv) {
-		filter = false;
+		filter = false; // TODO needed/unused?
 	}
 	bool cond = true;
 	forAllInAdj(v, [&](ogdf::adjEntry adj) {
@@ -443,6 +443,7 @@ bool Instance::reductionStrongSubsumption() {
 	ogdf::NodeArray<bool> outadju(G, false);
 	ogdf::NodeArray<bool> inadjv(G, false);
 	ogdf::NodeArray<ogdf::edge> theedge(G, nullptr);
+	ogdf::NodeSet<> couldBeStronglySubsumed(G);
 	auto outAdjMask = computeOutadjMask();
 	auto inAdjMask = computeInadjMask();
 	for (auto it = G.nodes.begin(); it != G.nodes.end(); --i) {
@@ -463,8 +464,8 @@ bool Instance::reductionStrongSubsumption() {
 			theedge[adj->twinNode()] = adj->theEdge();
 			return true;
 		});
-		ogdf::NodeSet<> couldBeStronglySubsumed(
-				G); // compute all vertices that share an in-neighbor or out-neighbor with u
+		couldBeStronglySubsumed.clear();
+		// compute all vertices that share an in-neighbor or out-neighbor with u
 		forAllInAdj(u, [&](ogdf::adjEntry adj) {
 			forAllOutAdj(adj->twinNode(), [&](ogdf::adjEntry adj2) {
 				if (adj2->twinNode() == u) {
@@ -491,7 +492,7 @@ bool Instance::reductionStrongSubsumption() {
 			++it2;
 			if (is_dominated[v] && is_subsumed[v]) {
 				log << "condition 2 applies, deleting " << node2ID[v] << std::endl;
-				safeDelete(v);
+				safeDelete(v, it);
 				cnt_removed++;
 				continue;
 			}
@@ -575,6 +576,7 @@ bool Instance::reductionSubsumption() {
 	int i = G.numberOfNodes();
 	ogdf::NodeArray<bool> outadju(G, false);
 	auto outAdjMask = computeOutadjMask();
+	ogdf::NodeSet<> couldBesubsumed(G);
 	for (auto it = G.nodes.begin(); it != G.nodes.end(); --i) {
 		OGDF_ASSERT(i >= 0); // protect against endless loops
 		auto u = *it;
@@ -589,7 +591,8 @@ bool Instance::reductionSubsumption() {
 			outadju[adj->twinNode()] = true;
 			return true;
 		});
-		ogdf::NodeSet<> couldBesubsumed(G); // compute all vertices that share an out-neighbor with u
+		// compute all vertices that share an out-neighbor with u
+		couldBesubsumed.clear();
 		forAllOutAdj(u, [&](ogdf::adjEntry adj) {
 			forAllInAdj(adj->twinNode(), [&](ogdf::adjEntry adj2) {
 				if (adj2->twinNode() == u) {
