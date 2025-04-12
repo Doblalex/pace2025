@@ -34,7 +34,7 @@ void Instance::dumpBCTree() {
 			continue;
 		}
 
-		if (BC.numberOfEdges(node) < SMALL_BLOCK) {
+		if (BC.numberOfEdges(node) < G.numberOfNodes() / 4) {
 			continue;
 		}
 
@@ -216,7 +216,7 @@ bool Instance::reductionBCTree(int depth) {
 	bool changed = false;
 	for (auto node : BC.bcTree().nodes) {
 		if (node->degree() == 1 && BC.typeOfBNode(node) == ogdf::BCTree::BNodeType::BComp
-				&& BC.numberOfNodes(node) < SMALL_BLOCK && replaced[node] == Replaced::Unchanged) {
+				&& BC.numberOfNodes(node) < G.numberOfNodes() / 4 && replaced[node] == Replaced::Unchanged) {
 			ogdf::node h_cv;
 			ogdf::node parent = BC.parent(node);
 			bool is_root = false;
