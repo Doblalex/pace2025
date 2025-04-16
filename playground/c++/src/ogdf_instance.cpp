@@ -436,7 +436,6 @@ bool Instance::reductionStrongSubsumption() {
 	ogdf::NodeArray<bool> outadju(G, false);
 	ogdf::NodeArray<bool> inadjv(G, false);
 	ogdf::NodeArray<ogdf::edge> theedge(G, nullptr);
-	ogdf::NodeSet<> couldBeStronglySubsumed(G);
 	auto outAdjMask = computeOutadjMask();
 	auto inAdjMask = computeInadjMask();
 	for (auto it = G.nodes.begin(); it != G.nodes.end(); --i) {
@@ -460,7 +459,7 @@ bool Instance::reductionStrongSubsumption() {
 		if (!is_dominated[u] && !is_subsumed[u]) {
 			outadju[u] = true;
 		}
-		couldBeStronglySubsumed.clear();
+		ogdf::NodeSet<> couldBeStronglySubsumed(G);
 		// compute all vertices that share an in-neighbor or out-neighbor with u
 		forAllInAdj(u, [&](ogdf::adjEntry adj) {
 			forAllOutAdj(adj->twinNode(), [&](ogdf::adjEntry adj2) {
@@ -494,10 +493,11 @@ bool Instance::reductionStrongSubsumption() {
 			else if (subsumptionCondition1(u, v, outadju, outAdjMask) && subsumptionCondition2(u, v, inadjv, inAdjMask)) {
 				bool udominated = is_dominated[u];
 				bool vdominated = is_dominated[v];
-				bool uhasloop = !udominated && !is_subsumed[u];
 
 				if (udominated && !vdominated) {
 					log << "strong subsumption with u dominated (contraction), deleting " << node2ID[v] << std::endl;
+					log << countCanBeDominatedBy(u)<<std::endl;
+					log << countCanBeDominatedBy(v)<<std::endl;
 					forAllInAdj(v, [&](ogdf::adjEntry adj) {
 						if (adj->twinNode() != u) {
 							auto e = G.newEdge(adj->twinNode(), ogdf::Direction::before, u,
@@ -508,7 +508,6 @@ bool Instance::reductionStrongSubsumption() {
 							} else {
 								reverse_edge[e] = nullptr;
 							}
-							safeDelete(adj->theEdge());
 						}
 						return true;
 					});					

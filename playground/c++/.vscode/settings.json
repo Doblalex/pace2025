@@ -1,4 +1,10 @@
 {
+    "cmake.debugConfig": {
+        "args": [
+            "<",
+            "../../../instances/official/ds/exact/exact_039.gr"
+        ]
+    },
     "files.associations": {
         "*.ipp": "cpp",
         "array": "cpp",
