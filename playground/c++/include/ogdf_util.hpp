@@ -98,7 +98,7 @@ inline bool forAllInAdj(ogdf::node v, std::function<bool(ogdf::adjEntry)> f) {
 	for (auto adj_it = (v)->adjEntries.rbegin(); adj_it != (v)->adjEntries.rend();) {
 		auto adj = *adj_it;
 		++adj_it;
-		if (!adj->isSource()) {
+		if (adj->isSource()) {
 			return true;
 		}
 		if (!f(adj)) {
@@ -115,6 +115,7 @@ ogdf::edge ide(ogdf::edge n);
 }
 
 #define SMALL_BLOCK 100
+#define BLOCK_FRACTION 0.25f
 
 constexpr uint64_t FNV1a_64_SEED = 0xcbf29ce484222325UL;
 

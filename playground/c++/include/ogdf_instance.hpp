@@ -7,9 +7,7 @@ private:
 	bool subsumptionCondition1(const ogdf::node& u, const ogdf::node& v,
 			const ogdf::NodeArray<bool>& adju, const ogdf::NodeArray<u_int64_t>& outadjMask);
 	bool subsumptionCondition2(const ogdf::node& u, const ogdf::node& v,
-			const ogdf::NodeArray<bool>& adju);
-	bool subsumptionCondition3(const ogdf::node& u, const ogdf::node& v,
-			ogdf::NodeArray<bool>& inadjv, const ogdf::NodeArray<u_int64_t>& outadjMask);
+			ogdf::NodeArray<bool>& inadjv, const ogdf::NodeArray<u_int64_t>& inadjMask);
 	ogdf::NodeArray<u_int64_t> computeOutadjMask();
 	ogdf::NodeArray<u_int64_t> computeInadjMask();
 
