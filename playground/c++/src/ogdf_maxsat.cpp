@@ -175,7 +175,7 @@ void solveEvalMaxSat(Instance& I) {
 	std::ofstream f(filename);
 #endif
 
-	solver.setTargetComputationTime(I.G.numberOfNodes() / 10 + 1);
+	solver.setTargetComputationTime(std::min(10*60, I.G.numberOfNodes() / 10 + 1));
 	std::cout.setstate(std::ios::failbit); // https://stackoverflow.com/a/8246430
 	bool solved = solver.solve();
 	std::cout.clear();
