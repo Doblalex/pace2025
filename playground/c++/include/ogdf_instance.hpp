@@ -251,6 +251,10 @@ public:
 
 	bool reductionSubsumption();
 
+	bool reductionNeighborhoodSubsets();
+
+	bool reductionContraction();
+
 	std::list<Instance> decomposeConnectedComponents();
 
 	bool reductionBCTree(int depth = 0);

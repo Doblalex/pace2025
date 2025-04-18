@@ -42,6 +42,7 @@ set(OGDF_SOURCES
   src/ogdf_instance.cpp
   src/ogdf_io.cpp
   src/ogdf_maxsat.cpp
+  src/ogdf_subsetrefine.cpp
 )
 
 include_directories(${PROJECT_SOURCE_DIR}/include)

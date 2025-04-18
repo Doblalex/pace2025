@@ -38,15 +38,14 @@ void reduceAndSolve(Instance& I, int d) {
 			return;
 		}
 
-		if (I.reductionBCTree(d)) {
+		if (I.reductionNeighborhoodSubsets()) {
+			changed = true; 
+		}
+		else if (I.reductionContraction()) {
 			changed = true;
-		} else {
-			if (I.reductionSubsumption()) {
-				changed = true; // TODO: this rule is still slow for large graphs
-			}
-			if (I.reductionStrongSubsumption()) {
-				changed = true; // TODO: this rule is still slow for large graphs
-			}
+		}
+		else if (I.reductionBCTree(d)) {
+			changed = true;
 		}
 
 		OGDF_ASSERT(!changed || I.G.numberOfNodes() < n || I.G.numberOfEdges() < m);

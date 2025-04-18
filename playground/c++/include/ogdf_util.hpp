@@ -7,7 +7,7 @@
 
 extern ogdf::Logger logger;
 
-#ifdef OGDF_DEBUG
+#ifndef OGDF_DEBUG
 #	define log   \
 		if (true) \
 		logger.lout()

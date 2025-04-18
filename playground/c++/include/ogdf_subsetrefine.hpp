@@ -1,0 +1,49 @@
+#pragma once
+#include "ogdf_util.hpp"
+#include "ogdf_instance.hpp"
+
+enum class RefineType { Subsume, Dominate };
+
+class SubsetRefine {
+ 
+    RefineType type;
+    Instance& instance;
+    
+    ogdf::Graph& G;
+    ogdf::Graph refineG;
+    ogdf::NodeArray<ogdf::node> bagof; // node(G) -> node(refineG)
+    ogdf::NodeArray<std::vector<ogdf::node>> bagNodeVec; // node(refineG) -> list of contained nodes from G
+    ogdf::NodeArray<size_t> vecIndex; // node(G) -> index of node in its vector for swap and pop
+    ogdf::NodeArray<ogdf::node> refinedBag; // node(refineG) -> pointer to node which contains the elements that got refined
+    size_t cntedgesadded = 0;
+    ogdf::NodeArray<size_t> cnttouched;
+    size_t cntreduced = 0;
+public:
+    SubsetRefine(Instance& instance, RefineType type) : instance(instance), G(instance.G), bagof(G, nullptr), bagNodeVec(refineG), vecIndex(G, 0), refinedBag(refineG, nullptr), type(type), cnttouched(G, 0) {
+
+    }
+
+    void init() {
+        auto initbag = refineG.newNode();
+        for (auto u: G.nodes) {
+            if ((!instance.is_dominated(u) && type == RefineType::Dominate) || (!instance.is_subsumed(u) && type == RefineType::Subsume)) {
+                bagof[u] = initbag;
+                bagNodeVec[initbag].push_back(u);
+                vecIndex[u] = bagNodeVec[initbag].size() - 1;
+            }
+        }
+    }
+
+    void doReduce(ogdf::node u) {
+        if (type == RefineType::Subsume) {
+            instance.markSubsumed(u);
+        } else {
+            instance.markDominated(u);
+        }
+        cntreduced++;
+    }
+
+    size_t doRefinementReduction();
+
+    void refineByNode(const ogdf::node& u);
+};

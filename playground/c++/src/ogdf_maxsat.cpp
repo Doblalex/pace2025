@@ -175,7 +175,7 @@ void solveEvalMaxSat(Instance& I) {
 	std::ofstream f(filename);
 #endif
 
-	solver.setTargetComputationTime(10 * 60);
+	solver.setTargetComputationTime(I.G.numberOfNodes() / 10 + 1);
 	std::cout.setstate(std::ios::failbit); // https://stackoverflow.com/a/8246430
 	bool solved = solver.solve();
 	std::cout.clear();
@@ -261,7 +261,7 @@ void solvecpsat(Instance& I) {
 	std::ofstream f(filename);
 #	endif
 
-	solver->EnableOutput();
+	// solver->EnableOutput();
 	const MPSolver::ResultStatus result_status = solver->Solve();
 
 	auto& l = logger.lout(ogdf::Logger::Level::Minor) << "Add to DS:";

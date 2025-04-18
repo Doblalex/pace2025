@@ -9,6 +9,7 @@
 #include "ogdf/fileformats/GraphIO.h"
 #include "ogdf/layered/SugiyamaLayout.h"
 #include "ogdf_solver.hpp"
+#include "ogdf_subsetrefine.hpp"
 
 void Instance::dumpBCTree() {
 	std::string stamp = std::to_string(std::chrono::system_clock::now().time_since_epoch().count())
@@ -613,4 +614,80 @@ ogdf::NodeArray<u_int64_t> Instance::computeInadjMask() {
 		});
 	}
 	return inadjMask;
+}
+
+bool Instance::reductionNeighborhoodSubsets() {
+	SubsetRefine refineSubsume(*this, RefineType::Subsume);
+	refineSubsume.init();
+	size_t cntsubsumed = refineSubsume.doRefinementReduction();
+	SubsetRefine refineDominate(*this, RefineType::Dominate);
+	refineDominate.init();
+	size_t cntdominated = refineDominate.doRefinementReduction();
+	if (cntdominated+cntsubsumed > 0) {
+		log << "Dominated " << cntdominated << " nodes"<<std::endl;
+		log << "Subsumed " << cntsubsumed << " nodes" <<std::endl;
+		size_t cnt_removed = 0;
+		for (auto it = G.nodes.begin(); it != G.nodes.end(); ) {
+			auto v = *it;
+			it++;
+			if (is_subsumed[v] && is_dominated[v]) {
+				safeDelete(v, it);
+				cnt_removed++;
+			}
+		}
+		log << "Removed " << cnt_removed <<" nodes" <<std::endl;
+		return true;
+	}
+	return false;
+}
+
+bool Instance::reductionContraction() {
+	size_t cnt_removed = 0;
+	ogdf::NodeArray<ogdf::edge> theedge(G, nullptr);
+	for (auto it = G.nodes.begin(); it != G.nodes.end();) {
+		auto u = *it;
+		it++;
+
+		if (is_dominated[u] && !is_subsumed[u]) {
+			bool contracted = false;
+
+			forAllOutAdj(u, [&](ogdf::adjEntry adj) {
+				theedge[adj->twinNode()] = adj->theEdge();
+				return true;
+			});
+
+			forAllOutAdj(u, [&](ogdf::adjEntry adj) {
+				auto v = adj->twinNode();
+				if (!is_dominated[v] && is_subsumed[v]) {
+					forAllInAdj(v, [&](ogdf::adjEntry adj2) {
+						if (adj2->twinNode() != u) {
+							auto e = G.newEdge(adj2->twinNode(), ogdf::Direction::before, u,
+									ogdf::Direction::after);
+							if (theedge[adj2->twinNode()] != nullptr) {
+								reverse_edge[e] = theedge[adj2->twinNode()];
+								reverse_edge[theedge[adj2->twinNode()]] = e;
+							} else {
+								reverse_edge[e] = nullptr;
+							}
+						}
+						return true;
+					});
+					safeDelete(v, it);
+					cnt_removed++;
+					is_dominated[u] = false;
+					return false;
+				}
+				return true;
+			});
+
+			forAllOutAdj(u, [&](ogdf::adjEntry adj) {
+				theedge[adj->twinNode()] = nullptr;
+				return true;
+			});
+		}
+	}
+	if (cnt_removed > 0) {
+		log << "Contraction removed " << cnt_removed << " vertices" << std::endl;
+	}
+	return cnt_removed > 0;
 }
