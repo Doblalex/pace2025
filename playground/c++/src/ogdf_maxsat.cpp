@@ -1,5 +1,5 @@
 #include "ogdf_maxsat.hpp"
-
+// #include "gurobi_c++.h"
 #include "EvalMaxSAT.h"
 #include "ogdf_util.hpp"
 
@@ -7,6 +7,59 @@
 #	include "ortools/linear_solver/linear_expr.h"
 #	include "ortools/linear_solver/linear_solver.h"
 #endif
+
+
+
+// void solveGurobiExactGurobi(Instance& instance) {
+// 	GRBEnv env;
+// 	GRBModel model(env);
+
+// 	model.set(GRB_IntParam_LogToConsole, 1); // Ensure logging is enabled
+
+// 	// model.set(GRB_IntParam_PoolSearchMode, 2); // Store multiple solutions
+// 	// model.set(GRB_DoubleParam_Heuristics, 0.5); // Increase heuristic effort (optional)
+// 	// model.set(GRB_DoubleParam_NoRelHeurTime, 10); // Allow NoRel heuristic extra time
+
+
+// 	log<<"Solving ILP witn number of nodes"<< instance.G.numberOfNodes()<<std::endl;
+
+// 	ogdf::NodeArray<GRBVar> varmap(instance.G);
+// 	std::vector<GRBVar> vars;
+
+// 	for (auto v: instance.G.nodes) {
+// 		if (instance.is_subsumed[v]) {
+// 			continue;
+// 		}
+// 		GRBVar var;
+// 		var = model.addVar(0, 1, 1, GRB_BINARY);
+// 		varmap[v] = var;
+// 		vars.push_back(var);
+// 	}
+// 	for (auto v: instance.G.nodes) {
+// 		if (instance.is_dominated[v]) {
+// 			continue;
+// 		}
+// 		GRBLinExpr expr;
+// 		instance.forAllCanBeDominatedBy(v, [&](ogdf::node w) {
+// 			expr += varmap[w];
+// 			return true;
+// 		});
+// 		model.addConstr(expr >= 1);
+// 	}
+
+// 	model.optimize();
+
+// 	auto& l = logger.lout(ogdf::Logger::Level::Minor) << "Add to DS:";
+// 	for (auto v: instance.G.nodes) {
+// 		if (instance.is_subsumed[v]) {
+// 			continue;
+// 		}
+// 		if (varmap[v].get(GRB_DoubleAttr_X) > 0.5) {
+// 			instance.addToDominatingSet(v);
+// 			l << " " << instance.node2ID[v];
+// 		}
+// 	}
+// }
 
 #ifdef EMS_CACHE
 uint64_t hash_clauses(const std::vector<std::vector<int>>& clauses) {
@@ -127,9 +180,8 @@ void solveEvalMaxSat(Instance& I) {
 		if (I.is_subsumed[v]) {
 			continue;
 		}
-		auto var = solver.newVar();
+		int var = solver.newSoftVar(true, -1);
 		varmap[v] = var;
-		solver.addClause({-var}, 1); // soft clause
 	}
 #ifdef EMS_CACHE
 	std::vector<std::vector<int>> hclauses;
@@ -175,10 +227,10 @@ void solveEvalMaxSat(Instance& I) {
 	std::ofstream f(filename);
 #endif
 
-	solver.setTargetComputationTime(std::min(10*60, I.G.numberOfNodes() / 10 + 1));
-	std::cout.setstate(std::ios::failbit); // https://stackoverflow.com/a/8246430
+	solver.setTargetComputationTime(30*60);
+	// std::cout.setstate(std::ios::failbit); // https://stackoverflow.com/a/8246430
 	bool solved = solver.solve();
-	std::cout.clear();
+	// std::cout.clear();
 
 	auto& l = logger.lout(ogdf::Logger::Level::Minor) << "Add to DS:";
 	for (auto v : I.G.nodes) {
@@ -261,7 +313,7 @@ void solvecpsat(Instance& I) {
 	std::ofstream f(filename);
 #	endif
 
-	// solver->EnableOutput();
+	solver->EnableOutput();
 	const MPSolver::ResultStatus result_status = solver->Solve();
 
 	auto& l = logger.lout(ogdf::Logger::Level::Minor) << "Add to DS:";

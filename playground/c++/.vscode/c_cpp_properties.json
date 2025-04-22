@@ -5,14 +5,14 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "${workspaceFolder}/ext/ogdf/include",
-                "${workspaceFolder}/ext/ogdf/build-release/include"
+                "/opt/gurobi1100/linux64/include"
+
             ],
             "defines": [],
             "compilerPath": "/usr/bin/clang",
             "cStandard": "c17",
             "cppStandard": "c++17",
-            "intelliSenseMode": "linux-clang-x64",
-            "compileCommands": "${workspaceFolder}/build/compile_commands.json"
+            "intelliSenseMode": "linux-clang-x64"
         }
     ],
     "version": 4

@@ -79,11 +79,8 @@ if(PACE_USE_GUROBI)
   find_package(GUROBI REQUIRED)
 
   include_directories(${GUROBI_INCLUDE_DIRS})
-  target_link_libraries(dsexact
-          general ${GUROBI_LIBRARY}
-          optimized ${GUROBI_CXX_LIBRARY}
-          debug ${GUROBI_CXX_DEBUG_LIBRARY})
-  target_link_libraries(dsexact)
+  target_link_libraries(dsexact ${GUROBI_LIBRARY})
+  # target_link_libraries(ogdf_dsexact ${GUROBI_LIBRARY})
 endif()
 
 # OR-TOOLS -----------------------------------------------------------------

@@ -72,6 +72,8 @@ void reduceAndSolve(Instance& I, int d) {
 	// now to solving...
 #ifdef USE_ORTOOLS
 	solvecpsat(I);
+// #elif USE_GUROBI
+// 	solveGurobiExactGurobi(I);
 #else
 	solveEvalMaxSat(I);
 #endif
