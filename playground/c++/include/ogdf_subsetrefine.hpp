@@ -34,13 +34,17 @@ public:
         }
     }
 
-    void doReduce(ogdf::node u) {
+    bool doReduce(ogdf::node u) {
         if (type == RefineType::Subsume) {
             instance.markSubsumed(u);
-        } else {
+            cntreduced++;
+            return true;
+        } else if (instance.is_subsumed[u]) {
             instance.markDominated(u);
-        }
-        cntreduced++;
+            cntreduced++;
+            return true;
+        }        
+        return false;
     }
 
     size_t doRefinementReduction();

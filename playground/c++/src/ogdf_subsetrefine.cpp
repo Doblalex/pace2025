@@ -157,39 +157,43 @@ void SubsetRefine::refineByNode(const ogdf::node& u) {
         refinedBag[bag] = nullptr;
     }
 
-    for (auto v: nodesToTouch) {
-        size_t deg = type == RefineType::Subsume ? instance.countCanDominate(v) : instance.countCanBeDominatedBy(v);
+    // for (auto v: nodesToTouch) {
+    //     size_t deg = type == RefineType::Subsume ? instance.countCanDominate(v) : instance.countCanBeDominatedBy(v);
 
-        if (cnttouched[v] == deg) {
-            if (type == RefineType::Subsume && (bagof[v]->indeg() > 0 || bagNodeVec[bagof[v]].size() > 1)) {
-                // v will be subsumed in the end either way by incoming edges or by someone in the bag
-                doReduce(v);
-                auto& vec = bagNodeVec[bagof[v]];
-                auto oldindex = vecIndex[v];
-                vecIndex[vec[vec.size()-1]] = oldindex;
-                std::swap(vec[oldindex], vec[vec.size()-1]);
-                vec.pop_back();
+    //     if (cnttouched[v] == deg) {
+    //         if (type == RefineType::Subsume && (bagof[v]->indeg() > 0 || bagNodeVec[bagof[v]].size() > 1)) {
+    //             // v will be subsumed in the end either way by incoming edges or by someone in the bag
+    //             doReduce(v);
+    //             auto& vec = bagNodeVec[bagof[v]];
+    //             auto oldindex = vecIndex[v];
+    //             vecIndex[vec[vec.size()-1]] = oldindex;
+    //             std::swap(vec[oldindex], vec[vec.size()-1]);
+    //             vec.pop_back();
 
-                if (vec.size() == 0) {
-                    refineG.delNode(bagof[v]);
-                }
-            }
-            else if (type == RefineType::Dominate) {
-                // the subset relations for outedges will not change anymore so we can already dominate all outedges and nodes in the bag
-                forAllOutAdj(bagof[v], [&](ogdf::adjEntry adj) {
-                    for (auto w: bagNodeVec[adj->twinNode()]) {
-                        doReduce(w);
-                    }
-                    refineG.delNode(adj->twinNode());
-                    return true;
-                });
-                for (auto w: bagNodeVec[bagof[v]]) {
-                    if (w != v) {
-                        doReduce(w);
-                    }
-                }
-                refineG.delNode(bagof[v]);
-            }
-        }
-    }
+    //             if (vec.size() == 0) {
+    //                 refineG.delNode(bagof[v]);
+    //             }
+    //         }
+    //         else if (type == RefineType::Dominate) {
+    //             // the subset relations for outedges will not change anymore so we can already dominate all outedges and nodes in the bag
+    //             forAllOutAdj(bagof[v], [&](ogdf::adjEntry adj) {
+    //                 for (auto w: bagNodeVec[adj->twinNode()]) {
+    //                     doReduce(w);
+    //                 }
+    //                 if (bagNodeVec[adj->twinNode()].size() == 0) {
+    //                     refineG.delNode(adj->twinNode());
+    //                 }
+    //                 return true;
+    //             });
+    //             for (auto w: bagNodeVec[bagof[v]]) {
+    //                 if (w != v) {
+    //                     doReduce(w);
+    //                 }
+    //             }
+    //             if (bagNodeVec[bagof[v]].size() == 0) {
+    //                 refineG.delNode(bagof[v]);
+    //             }
+    //         }
+    //     }
+    // }
 }
