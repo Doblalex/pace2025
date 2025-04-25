@@ -217,7 +217,8 @@ bool Instance::reductionBCTree(int depth) {
 	bool changed = false;
 	for (auto node : BC.bcTree().nodes) {
 		if (node->degree() == 1 && BC.typeOfBNode(node) == ogdf::BCTree::BNodeType::BComp
-				&& (float)BC.numberOfNodes(node) <= (float)G.numberOfNodes() * BLOCK_FRACTION && replaced[node] == Replaced::Unchanged) {
+				&& (float)BC.numberOfNodes(node) <= (float)G.numberOfNodes() * BLOCK_FRACTION
+				&& replaced[node] == Replaced::Unchanged) {
 			ogdf::node h_cv;
 			ogdf::node parent = BC.parent(node);
 			bool is_root = false;
@@ -235,8 +236,7 @@ bool Instance::reductionBCTree(int depth) {
 			ogdf::node cv = BC.original(h_cv);
 			OGDF_ASSERT(BC.bcproper(cv) == parent);
 
-			// TODO what if cv already dominated / subsumed / replaced[parent] == Replaced::Dominated?
-			if (replaced[parent] != Replaced::Unchanged || is_dominated[cv] || is_subsumed[cv]) {
+			if (replaced[parent] != Replaced::Unchanged) {
 				continue;
 			}
 			changed = true;
@@ -244,9 +244,12 @@ bool Instance::reductionBCTree(int depth) {
 			log << "Processing " << (is_root ? "root " : "") << "leaf block " << node << " with "
 				<< BC.numberOfNodes(node) << " nodes and "
 				<< (is_root ? "single child " : "parent ") << parent << "." << std::endl;
-			auto& l = logger.lout() << "CV " << node2ID[cv] << " has BC " << parent
-									<< " with parent " << BC.parent(parent) << "("
-									<< BC.numberOfEdges(BC.parent(parent)) << ")" << " and children";
+			auto& l = logger.lout()
+					<< "CV " << node2ID[cv] << " is "
+					<< (is_dominated[cv] ? "already dominated"
+										 : (is_subsumed[cv] ? "subsumed" : "unmarked"))
+					<< " has BC " << parent << " with parent " << BC.parent(parent) << "("
+					<< BC.numberOfEdges(BC.parent(parent)) << ")" << " and children";
 			for (auto adj : parent->adjEntries) {
 				if (!adj->isSource()) {
 					l << " " << adj->twinNode() << "(" << BC.numberOfEdges(adj->twinNode()) << ")";
@@ -267,73 +270,112 @@ bool Instance::reductionBCTree(int depth) {
 			}
 #endif
 
-			log << "I1: Computing ds(X_B - v) with cut-vertex v already dominated." << std::endl;
-			Instance I1; // X_B - v
-			nMap.fillWithDefault();
-			eMap.fillWithDefault();
-			I1.G.insert(nodes, BC.hEdges(node), nMap, eMap);
-			I1.initFrom(*this, nodes, BC.hEdges(node), nMap, eMap, original_n, original_e, copy_e);
-			{
-				ogdf::Logger::Indent _(logger);
-				I1.markDominated(nMap[h_cv]);
-				reduceAndSolve(I1, depth * 100 + 10);
+			bool en_case_1 = true, en_case_2A = true, en_case_2B = true;
+			if (is_dominated[cv]) {
+				OGDF_ASSERT(cv->indeg() == 0); // B no in, R no in
+				// 2A or 2B
+				log << "CV is dominated, disabling case 1" << std::endl;
+				en_case_1 = false;
+			} else if (is_subsumed[cv]) {
+				OGDF_ASSERT(cv->outdeg() == 0); // B no out, R no out
+				// 1 or 2B
+				log << "CV is subsumed, disabling case 2A" << std::endl;
+				en_case_2A = false;
+			} else {
+				bool B_in = false, B_out = false;
+				for (auto adj : cv->adjEntries) {
+					if (nodes.isMember(adj->twinNode())) {
+						if (adj->isSource()) {
+							B_out = true;
+						} else {
+							B_in = true;
+						}
+						if (B_out && B_in) {
+							break;
+						}
+					}
+				}
+				OGDF_ASSERT(B_in || B_out);
+				if (!B_in) {
+					// 1 or 2A
+					log << "No edges from B into CV, disabling case 2B" << std::endl;
+					en_case_2B = false;
+				} else if (!B_out) {
+					// 1 or 2B
+					log << "No edges from CV out to B, disabling case 2A" << std::endl;
+					en_case_2A = false;
+				}
 			}
 
-			log << "I2: Computing normal ds(X_B)." << std::endl;
-			Instance I2; // X_B
-			nMap.fillWithDefault();
-			eMap.fillWithDefault();
-			I2.G.insert(nodes, BC.hEdges(node), nMap, eMap);
-			I2.initFrom(*this, nodes, BC.hEdges(node), nMap, eMap, original_n, original_e, copy_e);
-			{
-				ogdf::Logger::Indent _(logger);
-				reduceAndSolve(I2, depth * 100 + 20);
-			}
+#define LAZY_INSTANCE(INST, COM, INIT, D)                                                          \
+	std::unique_ptr<Instance> INST;                                                                \
+	auto get_##INST = [&]() -> Instance& {                                                         \
+		if (INST) {                                                                                \
+			return *INST;                                                                          \
+		}                                                                                          \
+		log << COM << std::endl;                                                                   \
+		INST = std::make_unique<Instance>();                                                       \
+		nMap.fillWithDefault();                                                                    \
+		eMap.fillWithDefault();                                                                    \
+		INST->G.insert(nodes, BC.hEdges(node), nMap, eMap);                                        \
+		INST->initFrom(*this, nodes, BC.hEdges(node), nMap, eMap, original_n, original_e, copy_e); \
+		ogdf::Logger::Indent _(logger);                                                            \
+		INIT;                                                                                      \
+		reduceAndSolve(*INST, depth * 100 + D);                                                    \
+		return *INST;                                                                              \
+	};
 
-			if (I1.DS.size() < I2.DS.size()) {
+			LAZY_INSTANCE(I1, "I1: Computing ds(X_B - v) with cut-vertex v already dominated.",
+					I1->markDominated(nMap[h_cv]), 10);
+			LAZY_INSTANCE(I2, "I2: Computing normal ds(X_B).", , 20);
+			LAZY_INSTANCE(I3, "I3: Computing ds(X_B) containing v.",
+					I3->addToDominatingSet(nMap[h_cv]), 30);
+
+			auto smaller_DS_no_CV = [&] { return get_I1().DS.size() < get_I2().DS.size(); };
+			std::vector<int>* opt_DS_with_CV = nullptr;
+			auto opt_DS_has_CV = [&] {
+				if (opt_DS_with_CV) {
+					return true;
+				}
+				if (std::find(get_I2().DS.begin(), get_I2().DS.end(), node2ID[cv]) != get_I2().DS.end()) {
+					log << "RR-BC Case 2A(sc): The ds(X_B) from I2 already contains v." << std::endl;
+					opt_DS_with_CV = &get_I2().DS;
+					return true;
+				}
+				if (get_I2().DS.size() == get_I3().DS.size()) {
+					opt_DS_with_CV = &get_I3().DS;
+					return true;
+				} else {
+					return false;
+				}
+			};
+
+			if (en_case_1 && smaller_DS_no_CV()) {
 				log << "RR-BC Case 1: ds(X_B - v) < ds(X_B). Removing block, but leaving cut-vertex unchanged."
 					<< std::endl;
-				OGDF_ASSERT(I2.DS.size() - I1.DS.size() == 1);
-				// replaced[parent] = Replaced::Unchanged;
-				addToDominatingSet(I1.DS.begin(), I1.DS.end(), "ds(X_B - v)");
-
+				OGDF_ASSERT(get_I2().DS.size() - get_I1().DS.size() == 1);
+				addToDominatingSet(get_I1().DS.begin(), get_I1().DS.end(), "ds(X_B - v)");
 			} else {
 				log << "RR-BC Case 2: ds(X_B - v) = ds(X_B). Looking for optimal ds(X_B) containing cut-vertex v..."
 					<< std::endl;
-				OGDF_ASSERT(I1.DS.size() == I2.DS.size());
+				OGDF_ASSERT(get_I1().DS.size() == get_I2().DS.size());
 
-				if (std::find(I2.DS.begin(), I2.DS.end(), node2ID[cv]) != I2.DS.end()) {
-					log << "RR-BC Case 2.1(sc): The ds(X_B) from I2 contains v. "
+				if (en_case_2A && (!en_case_2B || opt_DS_has_CV())) {
+					log << "RR-BC Case 2A: Found optimal ds(X_B) containing v. "
 						<< "Adding v to DS and removing block." << std::endl;
 					replaced[parent] = Replaced::AddToDS;
-					addToDominatingSet(I2.DS.begin(), I2.DS.end(), "ds(B_X) containing v");
-
+					opt_DS_has_CV(); // ensure opt_DS_with_CV is set (this has no overhead in all cases)
+					OGDF_ASSERT(opt_DS_with_CV != nullptr);
+					addToDominatingSet(opt_DS_with_CV->begin(), opt_DS_with_CV->end(),
+							"ds(B_X) containing v");
 				} else {
-					log << "I3: Computing ds(X_B) containing v." << std::endl;
-					Instance I3; // X_B with v forced
-					nMap.fillWithDefault();
-					eMap.fillWithDefault();
-					I3.G.insert(nodes, BC.hEdges(node), nMap, eMap);
-					I3.initFrom(*this, nodes, BC.hEdges(node), nMap, eMap, original_n, original_e,
-							copy_e);
-					{
-						ogdf::Logger::Indent _(logger);
-						I3.addToDominatingSet(nMap[h_cv]);
-						reduceAndSolve(I3, depth * 100 + 30);
-					}
-
-					if (I2.DS.size() == I3.DS.size()) {
-						log << "RR-BC Case 2.1: Found optimal ds(X_B) containing v. "
-							<< "Adding v to DS and removing block." << std::endl;
-						replaced[parent] = Replaced::AddToDS;
-						addToDominatingSet(I3.DS.begin(), I3.DS.end(), "ds(B_X) containing v");
-					} else {
-						log << "RR-BC Case 2.2: No optimal ds(X_B) contains v. "
-							<< "Marking v as dominated (by B) and removing block B." << std::endl;
-						OGDF_ASSERT(I3.DS.size() - I2.DS.size() == 1);
-						replaced[parent] = Replaced::MarkDominated;
-						addToDominatingSet(I2.DS.begin(), I2.DS.end(), "ds(B_X) not containing v");
-					}
+					OGDF_ASSERT(en_case_2B);
+					log << "RR-BC Case 2B: No optimal ds(X_B) contains v. "
+						<< "Marking v as dominated (by B) and removing block B." << std::endl;
+					OGDF_ASSERT(get_I3().DS.size() - get_I2().DS.size() == 1);
+					replaced[parent] = Replaced::MarkDominated;
+					addToDominatingSet(get_I2().DS.begin(), get_I2().DS.end(),
+							"ds(B_X) not containing v");
 				}
 			}
 
@@ -511,14 +553,14 @@ bool Instance::reductionStrongSubsumption() {
 							}
 						}
 						return true;
-					});					
+					});
 				}
 				else {
-					log << "strong subsumption, deleting " << node2ID[v] << std::endl;	
-					log << "u: ("<<is_dominated[u]<<", "<<is_subsumed[u]<<") v: ("<<is_dominated[v]<<", "<<is_subsumed[v]<<")"<<std::endl;				
+					log << "strong subsumption, deleting " << node2ID[v] << std::endl;
+					log << "u: ("<<is_dominated[u]<<", "<<is_subsumed[u]<<") v: ("<<is_dominated[v]<<", "<<is_subsumed[v]<<")"<<std::endl;
 				}
 				is_dominated[u] = is_dominated[u] && is_dominated[v];
-				is_subsumed[u] = is_subsumed[u] && is_subsumed[v];		
+				is_subsumed[u] = is_subsumed[u] && is_subsumed[v];
 				safeDelete(v, it);
 				cnt_removed++;
 
