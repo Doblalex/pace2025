@@ -35,15 +35,19 @@ public:
     }
 
     bool doReduce(ogdf::node u) {
-        if (type == RefineType::Subsume) {
-            instance.markSubsumed(u);
+        if (type == RefineType::Subsume || instance.is_subsumed[u]) {
+            if (type == RefineType::Subsume) instance.markSubsumed(u);
+            else instance.markDominated(u);
+
+            auto& vec = bagNodeVec[bagof[u]];
+            auto oldindex = vecIndex[u];
+            vecIndex[vec[vec.size()-1]] = oldindex;
+            std::swap(vec[oldindex], vec[vec.size()-1]);
+            vec.pop_back();
+            bagof[u] = nullptr;
             cntreduced++;
             return true;
-        } else if (instance.is_subsumed[u]) {
-            instance.markDominated(u);
-            cntreduced++;
-            return true;
-        }        
+        }           
         return false;
     }
 
