@@ -701,19 +701,23 @@ bool Instance::reductionContraction() {
 			forAllOutAdj(u, [&](ogdf::adjEntry adj) {
 				auto v = adj->twinNode();
 				if (!is_dominated[v] && is_subsumed[v]) {
+					std::list<ogdf::node> in_neighbors;
 					forAllInAdj(v, [&](ogdf::adjEntry adj2) {
 						if (adj2->twinNode() != u) {
-							auto e = G.newEdge(adj2->twinNode(), ogdf::Direction::before, u,
-									ogdf::Direction::after);
-							if (theedge[adj2->twinNode()] != nullptr) {
-								reverse_edge[e] = theedge[adj2->twinNode()];
-								reverse_edge[theedge[adj2->twinNode()]] = e;
-							} else {
-								reverse_edge[e] = nullptr;
-							}
+							in_neighbors.push_back(adj2->twinNode());
 						}
 						return true;
 					});
+					for (auto w: in_neighbors) {
+						auto e = G.newEdge(w, ogdf::Direction::before, u,
+									ogdf::Direction::after);
+						if (theedge[w] != nullptr) {
+							reverse_edge[e] = theedge[w];
+							reverse_edge[theedge[w]] = e;
+						} else {
+							reverse_edge[e] = nullptr;
+						}
+					}
 					safeDelete(v, it);
 					cnt_removed++;
 					is_dominated[u] = false;
