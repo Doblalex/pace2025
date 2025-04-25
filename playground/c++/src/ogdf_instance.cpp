@@ -248,7 +248,7 @@ bool Instance::reductionBCTree(int depth) {
 					<< "CV " << node2ID[cv] << " is "
 					<< (is_dominated[cv] ? "already dominated"
 										 : (is_subsumed[cv] ? "subsumed" : "unmarked"))
-					<< " has BC " << parent << " with parent " << BC.parent(parent) << "("
+					<< " and has BC " << parent << " with parent " << BC.parent(parent) << "("
 					<< BC.numberOfEdges(BC.parent(parent)) << ")" << " and children";
 			for (auto adj : parent->adjEntries) {
 				if (!adj->isSource()) {
@@ -281,30 +281,14 @@ bool Instance::reductionBCTree(int depth) {
 				// 1 or 2B
 				log << "CV is subsumed, disabling case 2A" << std::endl;
 				en_case_2A = false;
-			} else {
-				bool B_in = false, B_out = false;
-				for (auto adj : cv->adjEntries) {
-					if (nodes.isMember(adj->twinNode())) {
-						if (adj->isSource()) {
-							B_out = true;
-						} else {
-							B_in = true;
-						}
-						if (B_out && B_in) {
-							break;
-						}
-					}
-				}
-				OGDF_ASSERT(B_in || B_out);
-				if (!B_in) {
-					// 1 or 2A
-					log << "No edges from B into CV, disabling case 2B" << std::endl;
-					en_case_2B = false;
-				} else if (!B_out) {
-					// 1 or 2B
-					log << "No edges from CV out to B, disabling case 2A" << std::endl;
-					en_case_2A = false;
-				}
+			} else if (h_cv->indeg() == 0) { // B no in
+				// 1 or 2A
+				log << "No edges from B into CV, disabling case 2B" << std::endl;
+				en_case_2B = false;
+			} else if (h_cv->outdeg() == 0) { // B no out
+				// 1 or 2B
+				log << "No edges from CV out to B, disabling case 2A" << std::endl;
+				en_case_2A = false;
 			}
 
 #define LAZY_INSTANCE(INST, COM, INIT, D)                                                          \
