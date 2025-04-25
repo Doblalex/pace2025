@@ -78,12 +78,14 @@ void SubsetRefine::refineByNode(const ogdf::node& u) {
 
     if (type == RefineType::Subsume) {
         instance.forAllCanBeDominatedBy(u, [&](ogdf::node adj) {
+            if (bagof[adj] == nullptr) return true;
             nodesToTouch.push_back(adj);
             return true;
         });
     }
     else {
         instance.forAllCanDominate(u, [&](ogdf::node adj) {
+            if (bagof[adj] == nullptr) return true;
             nodesToTouch.push_back(adj);
             return true;
         });
