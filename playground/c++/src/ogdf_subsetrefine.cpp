@@ -161,9 +161,11 @@ void SubsetRefine::refineByNode(const ogdf::node& u) {
 			forAllInAdj(bag, [&](ogdf::adjEntry adj) {
 				refineG.newEdge(adj->twinNode(), ogdf::Direction::before, newbag,
 						ogdf::Direction::after);
+				cntedgesadded++;
 				if (refinedBag[adj->twinNode()] != nullptr) {
 					refineG.newEdge(refinedBag[adj->twinNode()], ogdf::Direction::before, newbag,
 							ogdf::Direction::after);
+					cntedgesadded++;
 				}
 				return true;
 			});

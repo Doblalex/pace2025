@@ -7,7 +7,7 @@
 
 extern ogdf::Logger logger;
 
-#ifdef OGDF_DEBUG
+#if defined(OGDF_DEBUG) || defined(PACE_LOG)
 #	define log   \
 		if (true) \
 		logger.lout()

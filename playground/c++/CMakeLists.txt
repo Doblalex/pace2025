@@ -11,6 +11,11 @@ set(PACE_USE_ORTOOLS OFF CACHE BOOL "use installed or subproject-built ortools")
 set(PACE_USE_OGDF ON CACHE BOOL "use installed or subproject-built OGDF")
 set(PACE_USE_ASAN OFF CACHE BOOL "use the address sanitizer")
 set(PACE_ARCH "native" CACHE STRING "Target CPU (micro)architecture passed to the compiler via `-march`.")
+set(PACE_LOG OFF CACHE BOOL "enable logging")
+
+if(PACE_LOG)
+  add_compile_definitions(PACE_LOG)
+endif()
 
 add_compile_options("-march=${PACE_ARCH}")
 
