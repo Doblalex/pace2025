@@ -46,7 +46,8 @@ void reduceAndSolve(Instance& I, int d) {
 			changed = true;
 		}
 
-		OGDF_ASSERT(!changed || I.G.numberOfNodes() < n || I.G.numberOfEdges() < m);
+		// some RRs only add subsumed / dominated nodes without actually deleting sth (or rather only their imaginary selfloop)
+		//OGDF_ASSERT(!changed || I.G.numberOfNodes() < n || I.G.numberOfEdges() < m);
 		++i;
 	}
 
