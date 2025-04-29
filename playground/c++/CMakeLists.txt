@@ -53,15 +53,15 @@ add_executable(ogdf_hsexact ${OGDF_SOURCES} src/ogdf_mainhs.cpp)
 
 # EVALMAXSAT ---------------------------------------------------------------
 set(localLibs
-	MaLib
-    cadical
-    EvalMaxSAT
+  MaLib
+  cadical
+  EvalMaxSAT
 )
 
 FOREACH(localLib ${localLibs})
-    if(NOT TARGET ${localLib})
-        add_subdirectory(${PROJECT_SOURCE_DIR}/ext/EvalMaxSAT/lib/${localLib})
-    endif()
+  if(NOT TARGET ${localLib})
+    add_subdirectory(${PROJECT_SOURCE_DIR}/ext/EvalMaxSAT/lib/${localLib})
+  endif()
 ENDFOREACH(localLib)
 
 find_package(ZLIB)
@@ -80,6 +80,7 @@ if(PACE_USE_GUROBI)
 
   include_directories(${GUROBI_INCLUDE_DIRS})
   target_link_libraries(dsexact ${GUROBI_LIBRARY})
+
   # target_link_libraries(ogdf_dsexact ${GUROBI_LIBRARY})
 endif()
 
@@ -87,6 +88,7 @@ endif()
 if(PACE_USE_ORTOOLS)
   find_package(ortools)
   add_compile_definitions(USE_ORTOOLS)
+
   IF(${ortools_FOUND})
     message(STATUS "ortools found")
   ELSE()
@@ -116,10 +118,12 @@ endif()
 if(PACE_USE_OGDF)
   find_package(OGDF)
   add_compile_definitions(USE_OGDF)
+
   IF(${OGDF_FOUND})
     message(STATUS "OGDF found")
   ELSE()
     set(OGDF_MEMORY_MANAGER POOL_NTS CACHE STRING "OGDF_MEMORY_MANAGER defaults to POOL_NTS")
+
     if(CMAKE_BUILD_TYPE STREQUAL "Release")
       set(OGDF_USE_ASSERT_EXCEPTIONS OFF CACHE BOOL "OGDF_USE_ASSERT_EXCEPTIONS defaults to OFF")
     else()

@@ -29,29 +29,33 @@
 // }
 
 size_t SubsetRefine::doRefinementReduction() {
-	std::vector<ogdf::node> order;
-
+	std::vector<ogdf::node> refinebynodes;
+	ogdf::NodeArray<bool> isrefinedby(G, false);
 	for (auto u : G.nodes) {
 		if ((!instance.is_subsumed(u) && type == RefineType::Dominate)
 				|| (!instance.is_dominated(u) && type == RefineType::Subsume)) {
-			order.push_back(u);
-		}
-	}
-	std::sort(order.begin(), order.end(), [&](ogdf::node a, ogdf::node b) {
-		if (type == RefineType::Dominate) {
-			return instance.countCanDominate(a) < instance.countCanDominate(b);
+			refinebynodes.push_back(u);
 		} else {
-			return instance.countCanBeDominatedBy(a) < instance.countCanBeDominatedBy(b);
-		}
-	});
-	// std::list<ogdf::node> order;
-	// bfsorder(G, order);
-	for (auto u : order) {
-		if ((!instance.is_subsumed(u) && type == RefineType::Dominate)
-				|| (!instance.is_dominated(u) && type == RefineType::Subsume)) {
-			refineByNode(u);
+			isrefinedby[u] = true;
 		}
 	}
+
+	while (needTouch.size() > 0) {
+		auto it = *needTouch.begin();
+		auto u = it.second;
+		if (it.first == 0) {
+			needTouch.erase(it);
+			continue;
+		}
+		while (isrefinedby[needRefineBy[u].back()]) {
+			needRefineBy[u].pop_back();
+			OGDF_ASSERT(!needRefineBy[u].empty());
+		}
+		auto v = needRefineBy[u].back();
+		refineByNode(v);
+		isrefinedby[v] = true;
+	}
+
 	log << "Partition refinement structure has " << refineG.numberOfNodes() << " nodes and "
 		<< refineG.numberOfEdges() << " edges" << std::endl;
 	log << "In total, the structure had " << cntedgesadded << " edges added." << std::endl;
@@ -94,6 +98,14 @@ void SubsetRefine::refineByNode(const ogdf::node& u) {
 			nodesToTouch.push_back(adj);
 			return true;
 		});
+	}
+
+	for (auto u : nodesToTouch) {
+		needTouch.erase({needRefineBySize[u], u});
+		needRefineBySize[u]--;
+		if (needRefineBySize[u] > 0) {
+			needTouch.insert({needRefineBySize[u], u});
+		}
 	}
 
 	// move vertices into new bags
@@ -170,10 +182,7 @@ void SubsetRefine::refineByNode(const ogdf::node& u) {
 	}
 
 	for (auto v : nodesToTouch) {
-		size_t deg = type == RefineType::Subsume ? instance.countCanDominate(v)
-												 : instance.countCanBeDominatedBy(v);
-
-		if (cnttouched[v] == deg) {
+		if (needRefineBySize[v] == 0) {
 			if (type == RefineType::Subsume
 					&& (bagof[v]->indeg() > 0 || bagNodeVec[bagof[v]].size() > 1)) {
 				// v will be subsumed in the end either way by incoming edges or by someone in the bag
@@ -186,6 +195,9 @@ void SubsetRefine::refineByNode(const ogdf::node& u) {
 				}
 			} else if (type == RefineType::Dominate) {
 				// the subset relations for outedges will not change anymore so we can already dominate all outedges and nodes in the bag
+				if (bagof[v] == nullptr) {
+					continue;
+				}
 				forAllOutAdj(bagof[v], [&](ogdf::adjEntry adj) {
 					for (auto w : std::vector<ogdf::node>(bagNodeVec[adj->twinNode()].begin(),
 								 bagNodeVec[adj->twinNode()].end())) {
