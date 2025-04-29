@@ -231,6 +231,9 @@ void solveEvalMaxSat(Instance& I) {
 	std::cout.setstate(std::ios::failbit); // https://stackoverflow.com/a/8246430
 	bool solved = solver.solve();
 	std::cout.clear();
+	if (!solved) {
+		throw std::runtime_error("EvalMaxSAT didn't find optimal result!");
+	}
 
 	auto& l = logger.lout(ogdf::Logger::Level::Minor) << "Add to DS:";
 	for (auto v : I.G.nodes) {
@@ -313,8 +316,12 @@ void solvecpsat(Instance& I) {
 	std::ofstream f(filename);
 #	endif
 
-	solver->EnableOutput();
+	// solver->EnableOutput();
 	const MPSolver::ResultStatus result_status = solver->Solve();
+	if (result_status != MPSolver::OPTIMAL) {
+		std::cerr << "result_status " << result_status << std::endl;
+		throw std::runtime_error("MPSolver didn't find optimal result!");
+	}
 
 	auto& l = logger.lout(ogdf::Logger::Level::Minor) << "Add to DS:";
 	for (auto v : I.G.nodes) {
