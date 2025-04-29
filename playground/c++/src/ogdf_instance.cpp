@@ -685,32 +685,36 @@ bool Instance::reductionContraction() {
 				return true;
 			});
 
+			ogdf::node takev = nullptr;
 			forAllOutAdj(u, [&](ogdf::adjEntry adj) {
 				auto v = adj->twinNode();
 				if (!is_dominated[v] && is_subsumed[v]) {
-					std::list<ogdf::node> in_neighbors;
-					forAllInAdj(v, [&](ogdf::adjEntry adj2) {
-						if (adj2->twinNode() != u) {
-							in_neighbors.push_back(adj2->twinNode());
-						}
-						return true;
-					});
-					for (auto w : in_neighbors) {
-						auto e = G.newEdge(w, ogdf::Direction::before, u, ogdf::Direction::after);
-						if (theedge[w] != nullptr) {
-							reverse_edge[e] = theedge[w];
-							reverse_edge[theedge[w]] = e;
-						} else {
-							reverse_edge[e] = nullptr;
-						}
-					}
-					safeDelete(v, it);
-					cnt_removed++;
-					is_dominated[u] = false;
+					takev = v;
 					return false;
 				}
 				return true;
 			});
+			if (takev != nullptr) {
+				std::list<ogdf::node> in_neighbors;
+				forAllInAdj(takev, [&](ogdf::adjEntry adj2) {
+					if (adj2->twinNode() != u) {
+						in_neighbors.push_back(adj2->twinNode());
+					}
+					return true;
+				});
+				for (auto w : in_neighbors) {
+					auto e = G.newEdge(w, ogdf::Direction::before, u, ogdf::Direction::after);
+					if (theedge[w] != nullptr) {
+						reverse_edge[e] = theedge[w];
+						reverse_edge[theedge[w]] = e;
+					} else {
+						reverse_edge[e] = nullptr;
+					}
+				}
+				safeDelete(takev, it);
+				cnt_removed++;
+				is_dominated[u] = false;
+			}
 
 			forAllOutAdj(u, [&](ogdf::adjEntry adj) {
 				theedge[adj->twinNode()] = nullptr;
