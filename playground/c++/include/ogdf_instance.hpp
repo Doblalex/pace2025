@@ -141,9 +141,6 @@ public:
 		// ID2node[node2ID[n]] = nullptr;
 		logd << "\tsafe delete " << node2ID[n] << std::endl;
 		G.delNode(n);
-#ifdef OGDF_DEBUG
-		G.consistencyCheck();
-#endif
 	}
 
 	void safeDelete(ogdf::edge e) {

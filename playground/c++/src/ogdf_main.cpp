@@ -42,6 +42,7 @@ int main(int argc, char** argv) {
 			  << std::endl;
 
 #ifdef OGDF_DEBUG
+	ogdf::Logger::globalLogLevel(ogdf::Logger::Level::Alarm);
 	for (auto v : I.DS) {
 		I2.addToDominatingSet(ID2node.at(v));
 	}

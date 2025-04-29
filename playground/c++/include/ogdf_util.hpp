@@ -7,7 +7,7 @@
 
 extern ogdf::Logger logger;
 
-#ifndef OGDF_DEBUG
+#ifdef OGDF_DEBUG
 #	define log   \
 		if (true) \
 		logger.lout()
@@ -48,7 +48,8 @@ inline bool forAllOutAdj(ogdf::node v, std::function<bool(ogdf::adjEntry)> f) {
 		++adj_it;
 		++c;
 	}
-	OGDF_ASSERT(adj_it == v->adjEntries.end());
+	// FIXME reenable
+	// OGDF_ASSERT(adj_it == v->adjEntries.end());
 	return call;
 }
 

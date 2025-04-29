@@ -39,7 +39,7 @@ void reduceAndSolve(Instance& I, int d) {
 		}
 
 		if (I.reductionNeighborhoodSubsets()) {
-			changed = true; 
+			changed = true;
 		}
 		else if (I.reductionContraction()) {
 			changed = true;
@@ -60,14 +60,7 @@ void reduceAndSolve(Instance& I, int d) {
 	auto [can, need] = I.dominationStats();
 	log << "Reduced instance contains " << n << " nodes, " << m << " edges. " << need
 		<< " vertices need to be dominated, " << can << " are eligible for the DS." << std::endl;
-	// I.dumpBCTree();
 #endif
-
-	// if (I.G.numberOfNodes() > SMALL_BLOCK) {
-	//     log << "Using greedy approximation for large block!" << std::endl;
-	//     solveGreedy(I);
-	//     return;
-	// }
 
 	// now to solving...
 #ifdef USE_ORTOOLS
