@@ -2,8 +2,8 @@
 #define READINSTANCE_H
 
 
-#include "util.hpp"
 #include "instance.hpp"
+#include "util.hpp"
 
 Instance* read_instance(globalprops* props);
 

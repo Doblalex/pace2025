@@ -1,5 +1,5 @@
-#include "util.hpp"
 #include "instance.hpp"
+#include "util.hpp"
 
 // void solveScipExactILP(Instance* instance, VertexList& dominatingSet);
 

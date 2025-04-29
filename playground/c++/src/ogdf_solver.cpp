@@ -40,11 +40,9 @@ void reduceAndSolve(Instance& I, int d) {
 
 		if (I.reductionNeighborhoodSubsets()) {
 			changed = true;
-		}
-		else if (I.reductionContraction()) {
+		} else if (I.reductionContraction()) {
 			changed = true;
-		}
-		else if (I.reductionBCTree(d)) {
+		} else if (I.reductionBCTree(d)) {
 			changed = true;
 		}
 

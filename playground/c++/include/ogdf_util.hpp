@@ -11,7 +11,7 @@ extern ogdf::Logger logger;
 #	define log   \
 		if (true) \
 		logger.lout()
-#	define logd   \
+#	define logd  \
 		if (true) \
 		logger.lout(ogdf::Logger::Level::Minor)
 #else

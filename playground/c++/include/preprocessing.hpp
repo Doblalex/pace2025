@@ -2,9 +2,9 @@
 #define PREPROCESSING_H
 
 
-#include "util.hpp"
 #include "instance.hpp"
 #include "partition.hpp"
+#include "util.hpp"
 
 bool reductionIsolated(Instance* instance, VertexList& dominatingSet);
 

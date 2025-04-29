@@ -321,7 +321,8 @@ bool Instance::reductionBCTree(int depth) {
 				if (opt_DS_with_CV) {
 					return true;
 				}
-				if (std::find(get_I2().DS.begin(), get_I2().DS.end(), node2ID[cv]) != get_I2().DS.end()) {
+				if (std::find(get_I2().DS.begin(), get_I2().DS.end(), node2ID[cv])
+						!= get_I2().DS.end()) {
 					log << "RR-BC Case 2A(sc): The ds(X_B) from I2 already contains v." << std::endl;
 					opt_DS_with_CV = &get_I2().DS;
 					return true;
@@ -413,7 +414,9 @@ bool Instance::reductionBCTree(int depth) {
 
 bool Instance::subsumptionCondition1(const ogdf::node& u, const ogdf::node& v,
 		const ogdf::NodeArray<bool>& adju, const ogdf::NodeArray<u_int64_t>& outadjMask) {
-	if (is_subsumed[v]) return true;
+	if (is_subsumed[v]) {
+		return true;
+	}
 	if ((outadjMask[u] | outadjMask[v]) != outadjMask[u]) {
 		return false;
 	}
@@ -429,7 +432,7 @@ bool Instance::subsumptionCondition1(const ogdf::node& u, const ogdf::node& v,
 }
 
 bool Instance::subsumptionCondition2(const ogdf::node& u, const ogdf::node& v,
-	ogdf::NodeArray<bool>& inadjv, const ogdf::NodeArray<u_int64_t>& inadjMask) {
+		ogdf::NodeArray<bool>& inadjv, const ogdf::NodeArray<u_int64_t>& inadjMask) {
 	if (is_dominated[u] || is_dominated[v]) {
 		return true;
 	}
@@ -516,15 +519,16 @@ bool Instance::reductionStrongSubsumption() {
 				safeDelete(v, it);
 				cnt_removed++;
 				continue;
-			}
-			else if (subsumptionCondition1(u, v, outadju, outAdjMask) && subsumptionCondition2(u, v, inadjv, inAdjMask)) {
+			} else if (subsumptionCondition1(u, v, outadju, outAdjMask)
+					&& subsumptionCondition2(u, v, inadjv, inAdjMask)) {
 				bool udominated = is_dominated[u];
 				bool vdominated = is_dominated[v];
 
 				if (udominated && !vdominated) {
-					log << "strong subsumption with u dominated (contraction), deleting " << node2ID[v] << std::endl;
-					log << countCanBeDominatedBy(u)<<std::endl;
-					log << countCanBeDominatedBy(v)<<std::endl;
+					log << "strong subsumption with u dominated (contraction), deleting "
+						<< node2ID[v] << std::endl;
+					log << countCanBeDominatedBy(u) << std::endl;
+					log << countCanBeDominatedBy(v) << std::endl;
 					forAllInAdj(v, [&](ogdf::adjEntry adj) {
 						if (adj->twinNode() != u) {
 							auto e = G.newEdge(adj->twinNode(), ogdf::Direction::before, u,
@@ -538,16 +542,15 @@ bool Instance::reductionStrongSubsumption() {
 						}
 						return true;
 					});
-				}
-				else {
+				} else {
 					log << "strong subsumption, deleting " << node2ID[v] << std::endl;
-					log << "u: ("<<is_dominated[u]<<", "<<is_subsumed[u]<<") v: ("<<is_dominated[v]<<", "<<is_subsumed[v]<<")"<<std::endl;
+					log << "u: (" << is_dominated[u] << ", " << is_subsumed[u] << ") v: ("
+						<< is_dominated[v] << ", " << is_subsumed[v] << ")" << std::endl;
 				}
 				is_dominated[u] = is_dominated[u] && is_dominated[v];
 				is_subsumed[u] = is_subsumed[u] && is_subsumed[v];
 				safeDelete(v, it);
 				cnt_removed++;
-
 			}
 		}
 		// does not matter if some v are deleted and not reset here because they will never be accessed again
@@ -649,11 +652,11 @@ bool Instance::reductionNeighborhoodSubsets() {
 	SubsetRefine refineDominate(*this, RefineType::Dominate);
 	refineDominate.init();
 	size_t cntdominated = refineDominate.doRefinementReduction();
-	if (cntdominated+cntsubsumed > 0) {
-		log << "Dominated " << cntdominated << " nodes"<<std::endl;
-		log << "Subsumed " << cntsubsumed << " nodes" <<std::endl;
+	if (cntdominated + cntsubsumed > 0) {
+		log << "Dominated " << cntdominated << " nodes" << std::endl;
+		log << "Subsumed " << cntsubsumed << " nodes" << std::endl;
 		size_t cnt_removed = 0;
-		for (auto it = G.nodes.begin(); it != G.nodes.end(); ) {
+		for (auto it = G.nodes.begin(); it != G.nodes.end();) {
 			auto v = *it;
 			it++;
 			if (is_subsumed[v] && is_dominated[v]) {
@@ -661,7 +664,7 @@ bool Instance::reductionNeighborhoodSubsets() {
 				cnt_removed++;
 			}
 		}
-		log << "Removed " << cnt_removed <<" nodes" <<std::endl;
+		log << "Removed " << cnt_removed << " nodes" << std::endl;
 		return true;
 	}
 	return false;
@@ -692,9 +695,8 @@ bool Instance::reductionContraction() {
 						}
 						return true;
 					});
-					for (auto w: in_neighbors) {
-						auto e = G.newEdge(w, ogdf::Direction::before, u,
-									ogdf::Direction::after);
+					for (auto w : in_neighbors) {
+						auto e = G.newEdge(w, ogdf::Direction::before, u, ogdf::Direction::after);
 						if (theedge[w] != nullptr) {
 							reverse_edge[e] = theedge[w];
 							reverse_edge[theedge[w]] = e;
