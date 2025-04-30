@@ -357,7 +357,7 @@ bool Instance::reductionBCTree(int depth) {
 					OGDF_ASSERT(en_case_2B);
 					log << "RR-BC Case 2B: No optimal ds(X_B) contains v. "
 						<< "Marking v as dominated (by B) and removing block B." << std::endl;
-					OGDF_ASSERT(get_I3().DS.size() - get_I2().DS.size() == 1);
+					OGDF_ASSERT(is_subsumed[cv] || get_I3().DS.size() - get_I2().DS.size() == 1);
 					replaced[parent] = Replaced::MarkDominated;
 					addToDominatingSet(get_I2().DS.begin(), get_I2().DS.end(),
 							"ds(B_X) not containing v");
