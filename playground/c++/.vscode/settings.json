@@ -2,7 +2,7 @@
     "cmake.debugConfig": {
         "args": [
             "<",
-            "../../../instances/official/ds/exact/exact_030.gr"
+            "../../../instances/official/ds/exact/exact_017.gr"
         ]
     },
     "files.associations": {
@@ -98,7 +98,9 @@
         "thread": "cpp",
         "typeindex": "cpp",
         "typeinfo": "cpp",
-        "variant": "cpp"
+        "variant": "cpp",
+        "hash_map": "cpp",
+        "hash_set": "cpp"
     },
     "C_Cpp.errorSquiggles": "enabled"
 }

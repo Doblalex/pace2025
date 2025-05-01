@@ -2,6 +2,7 @@
 
 #include "ogdf_greedy.hpp"
 #include "ogdf_maxsat.hpp"
+#include "ogdf_treewidth.h"
 
 void reduceAndSolve(Instance& I, int d) {
 	bool changed = true;
@@ -51,6 +52,7 @@ void reduceAndSolve(Instance& I, int d) {
 		++i;
 	}
 
+
 	if (I.G.numberOfNodes() < 1) {
 		log << "Reduced instance is empty with DS " << I.DS.size() << "!" << std::endl;
 		return;
@@ -60,6 +62,15 @@ void reduceAndSolve(Instance& I, int d) {
 	log << "Reduced instance contains " << n << " nodes, " << m << " edges. " << need
 		<< " vertices need to be dominated, " << can << " are eligible for the DS." << std::endl;
 #endif
+	// ReductionTreeDecomposition rtd(I.G, I);
+	// rtd.computeDecomposition();
+
+	// if (rtd.decomposition != nullptr) {
+	// 	log << "Decomposition found with treewidth " << rtd.treewidth << std::endl;
+	// 	if (rtd.treewidth <= 10) {
+	// 		rtd.solveDPExact();
+	// 	}
+	// }
 
 	// now to solving...
 #ifdef USE_ORTOOLS

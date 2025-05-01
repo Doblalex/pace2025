@@ -10,6 +10,9 @@
 	path = playground/c++/ext/or-tools
 	url = https://github.com/google/or-tools.git
 	shallow = true
-[submodule "playground/c++/ext/ogdf"]
+[submodule "ogdf"]
 	path = playground/c++/ext/ogdf
 	url = https://github.com/N-Coder/ogdf.git
+[submodule "htd"]
+	path = playground/c++/ext/htd
+	url = git@github.com:Doblalex/htd_for_pace2025.git
