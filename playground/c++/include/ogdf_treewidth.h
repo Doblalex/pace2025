@@ -14,6 +14,11 @@
 #include "ogdf_util.hpp"
 #include <htd/main.hpp>
 
+typedef size_t TW_SIGNATURE_TYPE;
+#define TW_WAITING 0
+#define TW_DOMINATED 1
+#define TW_INDS 2
+
 class ReductionTreeDecomposition {
 public:
 	ogdf::Graph& G;
@@ -38,7 +43,7 @@ public:
 
 	void computeDecomposition();
 
-	void solveDPExact();
+	int solveDPExact();
 };
 
 class FitnessFunction : public htd::ITreeDecompositionFitnessFunction {
