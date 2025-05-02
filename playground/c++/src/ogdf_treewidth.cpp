@@ -21,7 +21,7 @@ void ReductionTreeDecomposition::computeDecomposition() {
 		forAllOutAdj(u, [&](ogdf::adjEntry adj) {
 			auto v = adj->twinNode();
 			if (u < v) {
-				graph->addEdge(nodeid[u], nodeid[v]);
+				graph->addEdgeWithoutCheck(nodeid[u], nodeid[v]);
 				added.insert(v);
 			}
 			return true;
@@ -29,7 +29,7 @@ void ReductionTreeDecomposition::computeDecomposition() {
 		forAllInAdj(u, [&](ogdf::adjEntry adj) {
 			auto v = adj->twinNode();
 			if (u < v && !added.isMember(v)) {
-				graph->addEdge(nodeid[u], nodeid[v]);
+				graph->addEdgeWithoutCheck(nodeid[u], nodeid[v]);
 			}
 			return true;
 		});
