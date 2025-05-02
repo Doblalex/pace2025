@@ -24,7 +24,7 @@ public:
 	ogdf::Graph& G;
 	Instance& I;
 	htd::ITreeDecomposition* decomposition = nullptr;
-	htd::IMutableMultiGraph* graph;
+	htd::IMutableGraph* graph;
 	ogdf::NodeArray<size_t> nodeid;
 	std::vector<ogdf::node> idnode;
 	int treewidth = -1;
