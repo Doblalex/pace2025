@@ -18,7 +18,6 @@ void ReductionTreeDecomposition::computeDecomposition() {
 	ogdf::NodeSet<true> added(G);
 	size_t i = 0;
 	for (auto u : G.nodes) {
-		log << i++ << " " << u->outdeg() << std::endl;
 		forAllOutAdj(u, [&](ogdf::adjEntry adj) {
 			auto v = adj->twinNode();
 			if (u < v) {
