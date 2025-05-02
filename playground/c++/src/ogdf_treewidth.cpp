@@ -8,22 +8,33 @@ void ReductionTreeDecomposition::computeDecomposition() {
 	std::srand(0);
 
 	// Create a new graph instance which can handle (multi-)hyperedges.
-	graph = manager->graphFactory().createInstance();
+	graph = manager->multiGraphFactory()
+					.createInstance(); // Use Multigraph! Graph checks if parallel edges, which is super slow!
 	graph->addVertices(G.numberOfNodes());
 	size_t cnt = 0;
 	for (ogdf::node v : G.nodes) {
 		nodeid[v] = ++cnt;
 		idnode[cnt] = v;
 	}
-
+	ogdf::NodeSet<true> added(G);
 	for (auto u : G.nodes) {
 		forAllOutAdj(u, [&](ogdf::adjEntry adj) {
 			auto v = adj->twinNode();
-			// if (u < v || I.reverse_edge[adj->theEdge()] == nullptr) {
-			graph->addEdge(nodeid[u], nodeid[v]);
-			// }
+			if (u < v) {
+				graph->addEdge(nodeid[u], nodeid[v]);
+				added.insert(v);
+			}
+
 			return true;
 		});
+		forAllInAdj(u, [&](ogdf::adjEntry adj) {
+			auto v = adj->twinNode();
+			if (u < v && !added.isMember(v)) {
+				graph->addEdge(nodeid[u], nodeid[v]);
+			}
+			return true;
+		});
+		added.clear();
 	}
 
 
@@ -45,10 +56,12 @@ void ReductionTreeDecomposition::computeDecomposition() {
 	algorithm.setNonImprovementLimit(3);
 
 	std::packaged_task<int(int)> task([&](int cnt) {
+		log << "Waiting for termination signal..." << std::endl;
 		std::this_thread::sleep_for(std::chrono::seconds(1));
 		mtx.lock();
 		int x = terminate_counter;
 		if (x == cnt) {
+			log << "Terminating tree decomposition computation!" << std::endl;
 			manager->terminate();
 		}
 		mtx.unlock();
