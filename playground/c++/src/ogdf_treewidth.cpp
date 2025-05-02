@@ -8,8 +8,7 @@ void ReductionTreeDecomposition::computeDecomposition() {
 	std::srand(0);
 
 	// Create a new graph instance which can handle (multi-)hyperedges.
-	graph = manager->multiGraphFactory()
-					.createInstance(); // Use Multigraph! Graph checks if parallel edges, which is super slow!
+	graph = manager->graphFactory().createInstance(); // Use Multigraph! Graph checks if parallel edges, which is super slow!
 	graph->addVertices(G.numberOfNodes());
 	size_t cnt = 0;
 	for (ogdf::node v : G.nodes) {
@@ -17,14 +16,15 @@ void ReductionTreeDecomposition::computeDecomposition() {
 		idnode[cnt] = v;
 	}
 	ogdf::NodeSet<true> added(G);
+	size_t i = 0;
 	for (auto u : G.nodes) {
+		log << i++ << " " << u->outdeg() << std::endl;
 		forAllOutAdj(u, [&](ogdf::adjEntry adj) {
 			auto v = adj->twinNode();
 			if (u < v) {
 				graph->addEdge(nodeid[u], nodeid[v]);
 				added.insert(v);
 			}
-
 			return true;
 		});
 		forAllInAdj(u, [&](ogdf::adjEntry adj) {
