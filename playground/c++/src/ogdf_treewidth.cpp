@@ -7,6 +7,8 @@ std::unique_ptr<htd::LibraryInstance> manager(htd::createManagementInstance(htd:
 void ReductionTreeDecomposition::computeDecomposition() {
 	std::srand(0);
 
+	manager->reset();
+
 	// Create a new graph instance which can handle (multi-)hyperedges.
 	graph = manager->graphFactory().createInstance(); // Use Multigraph! Graph checks if parallel edges, which is super slow!
 	graph->addVertices(G.numberOfNodes());
