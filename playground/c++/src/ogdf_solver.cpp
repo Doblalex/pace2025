@@ -67,11 +67,12 @@ void reduceAndSolve(Instance& I, int d) {
 
 	ReductionTreeDecomposition rtd(I.G, I);
 	rtd.computeDecomposition();
+	int ansdp = -1;
 	if (rtd.decomposition != nullptr) {
 		log << "Decomposition found with treewidth " << rtd.treewidth << std::endl;
-		if (rtd.treewidth <= 10) {
+		if (rtd.treewidth <= 13) {
 			log << "Solving with DP" << std::endl;
-			rtd.solveDPExact();
+			ansdp = rtd.solveDPExact();
 			return;
 		}
 	}
@@ -81,6 +82,12 @@ void reduceAndSolve(Instance& I, int d) {
 // #elif USE_GUROBI
 // 	solveGurobiExactGurobi(I);
 #else
+	int anssat = I.DS.size();
 	solveEvalMaxSat(I);
+	anssat = I.DS.size() - anssat;
+	if (ansdp != -1) {
+		log << anssat << " vs. " << ansdp << std::endl;
+		OGDF_ASSERT(anssat == ansdp);
+	}
 #endif
 }
