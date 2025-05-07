@@ -203,16 +203,18 @@ void solveEvalMaxSat(Instance& I) {
 			hclauses.back().push_back(I.node2ID[v]);
 #endif
 		}
-		forAllInAdj(v, [&](ogdf::adjEntry adj) {
+		auto add_neigh = [&](ogdf::adjEntry adj) {
 			auto w = adj->twinNode();
-			if (!I.is_subsumed[w]) {
+			if (!adj->isSource() && !I.is_subsumed[w]) {
 				clause.push_back(varmap[w]);
 #ifdef EMS_CACHE
 				hclauses.back().push_back(I.node2ID[w]);
 #endif
 			}
 			return true;
-		});
+		};
+		forAllInAdj(v, add_neigh);
+		ogdf::safeForEach(I.hidden_edges.adjEntries(v), add_neigh);
 		solver.addClause(clause); //hard clause
 #ifdef EMS_CACHE
 		std::sort(hclauses.back().begin(), hclauses.back().end());
@@ -293,16 +295,18 @@ void solvecpsat(Instance& I) {
 			hclauses.back().push_back(I.node2ID[v]);
 #	endif
 		}
-		forAllInAdj(v, [&](ogdf::adjEntry adj) {
+		auto add_neigh = [&](ogdf::adjEntry adj) {
 			auto w = adj->twinNode();
-			if (!I.is_subsumed[w]) {
+			if (!adj->isSource() && !I.is_subsumed[w]) {
 				expr += varmap[w];
 #	ifdef EMS_CACHE
 				hclauses.back().push_back(I.node2ID[w]);
 #	endif
 			}
 			return true;
-		});
+		};
+		forAllInAdj(v, add_neigh);
+		ogdf::safeForEach(I.hidden_edges.adjEntries(v), add_neigh);
 		solver->MakeRowConstraint(expr >= 1); //hard clause
 #	ifdef EMS_CACHE
 		std::sort(hclauses.back().begin(), hclauses.back().end());

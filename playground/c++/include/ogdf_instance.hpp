@@ -19,10 +19,15 @@ public:
 	ogdf::NodeArray<bool> is_dominated;
 	ogdf::NodeArray<bool> is_subsumed;
 	ogdf::EdgeArray<ogdf::edge> reverse_edge;
+	ogdf::Graph::DynamicHiddenEdgeSet hidden_edges;
 	std::hash<ogdf::node> nodehash;
 
 	Instance()
-		: node2ID(G, -1), is_dominated(G, false), is_subsumed(G, false), reverse_edge(G, nullptr) { }
+		: node2ID(G, -1)
+		, is_dominated(G, false)
+		, is_subsumed(G, false)
+		, reverse_edge(G, nullptr)
+		, hidden_edges(G) { }
 
 	OGDF_NO_COPY(Instance)
 	OGDF_NO_MOVE(Instance)
@@ -112,6 +117,9 @@ public:
 				reverse_edge[eMap[e]] = nullptr;
 			}
 		}
+		for (auto oe : other.hidden_edges) {
+			hidden_edges.hide(G.newEdge(nMap[oe->source()], nMap[oe->target()]));
+		}
 	}
 
 	void read(std::istream& is) {
@@ -195,7 +203,13 @@ public:
 	void markDominated(ogdf::node v) {
 		is_dominated[v] = true;
 		forAllInAdj(v, [&](ogdf::adjEntry adj) {
-			safeDelete(adj->theEdge());
+			ogdf::edge e = adj->theEdge();
+			ogdf::edge r = reverse_edge[e];
+			if (r != nullptr) {
+				OGDF_ASSERT(reverse_edge[r] == e);
+				reverse_edge[r] = nullptr;
+			}
+			hidden_edges.hide(e);
 			return true;
 		});
 	}
@@ -205,6 +219,13 @@ public:
 		forAllOutAdj(v, [&](ogdf::adjEntry adj) {
 			safeDelete(adj->theEdge());
 			return true;
+		});
+	}
+
+	void removeHiddenEdges(ogdf::node n) {
+		ogdf::safeForEach(hidden_edges.adjEntries(n), [&](ogdf::adjEntry adj) {
+			hidden_edges.restore(adj->theEdge());
+			G.delEdge(adj->theEdge());
 		});
 	}
 
