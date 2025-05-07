@@ -56,23 +56,19 @@ void ReductionTreeDecomposition::computeDecomposition() {
 	algorithm.setIterationCount(10);
 	algorithm.setNonImprovementLimit(3);
 
-	std::packaged_task<int(int)> task([&](int cnt) {
-		log << "Waiting for termination signal..." << std::endl;
-		std::this_thread::sleep_for(std::chrono::seconds(1));
-		mtx.lock();
-		int x = terminate_counter;
-		if (x == cnt) {
-			log << "Terminating tree decomposition computation!" << std::endl;
-			manager->terminate();
-		}
-		mtx.unlock();
-		return 0;
-	});
-	mtx.lock();
-	std::future<int> f1 = task.get_future(); // get a future
-	std::thread t(std::move(task), terminate_counter); // launch on a thread
-	t.detach();
-	mtx.unlock();
+	auto t = std::async(
+			std::launch::async,
+			[](int cnt) {
+				log << "Waiting for termination signal..." << std::endl;
+				std::this_thread::sleep_for(std::chrono::seconds(1));
+				mtx.lock();
+				if (terminate_counter == cnt) {
+					log << "Terminating tree decomposition computation!" << std::endl;
+					manager->terminate();
+				}
+				mtx.unlock();
+			},
+			terminate_counter);
 
 	std::size_t optimalBagSize = (std::size_t)-1;
 	decomposition = algorithm.computeDecomposition(*graph,
