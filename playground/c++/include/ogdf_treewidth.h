@@ -43,7 +43,7 @@ public:
 	std::vector<std::vector<ogdf::node>> bag_nodes;
 	ogdf::NodeArray<size_t> nodeid;
 	std::vector<ogdf::node> idnode;
-	ogdf::NodeSet<true> currBagNodes;
+	ogdf::NodeSet currBagNodes;
 	ogdf::NodeArray<size_t> currSigIndex;
 	std::vector<TW_SIGNATURE_TYPE> chosensig;
 	int treewidth = -1;

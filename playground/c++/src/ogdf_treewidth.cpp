@@ -17,7 +17,7 @@ void ReductionTreeDecomposition::computeDecomposition() {
 		nodeid[v] = ++cnt;
 		idnode[cnt] = v;
 	}
-	ogdf::NodeSet<true> added(G);
+	ogdf::NodeSet added(G);
 	size_t i = 0;
 	for (auto u : G.nodes) {
 		forAllOutAdj(u, [&](ogdf::adjEntry adj) {

@@ -20,7 +20,7 @@ void Instance::dumpBCTree() {
 	ogdf::BCTree BC(G);
 	ogdf::GraphAttributes BCA(BC.bcTree(), ogdf::GraphAttributes::all);
 	ogdf::GraphAttributes BA;
-	ogdf::NodeSet<> nodes(BC.auxiliaryGraph());
+	ogdf::NodeSet nodes(BC.auxiliaryGraph());
 	ogdf::NodeArray<ogdf::node> nMap(BC.auxiliaryGraph(), nullptr);
 	ogdf::EdgeArray<ogdf::edge> eMap(BC.auxiliaryGraph(), nullptr);
 
@@ -211,7 +211,7 @@ bool Instance::reductionBCTree(int depth) {
 		return cn;
 	};
 
-	ogdf::NodeSet<> nodes(BC.auxiliaryGraph());
+	ogdf::NodeSet nodes(BC.auxiliaryGraph());
 	ogdf::NodeArray<ogdf::node> nMap(BC.auxiliaryGraph(), nullptr);
 	ogdf::EdgeArray<ogdf::edge> eMap(BC.auxiliaryGraph(), nullptr);
 	bool changed = false;
@@ -489,7 +489,7 @@ bool Instance::reductionStrongSubsumption() {
 		if (!is_dominated[u] && !is_subsumed[u]) {
 			outadju[u] = true;
 		}
-		ogdf::NodeSet<> couldBeStronglySubsumed(G);
+		ogdf::NodeSet couldBeStronglySubsumed(G);
 		// compute all vertices that share an in-neighbor or out-neighbor with u
 		forAllInAdj(u, [&](ogdf::adjEntry adj) {
 			forAllOutAdj(adj->twinNode(), [&](ogdf::adjEntry adj2) {
@@ -571,7 +571,7 @@ bool Instance::reductionSubsumption() {
 	int i = G.numberOfNodes();
 	ogdf::NodeArray<bool> outadju(G, false);
 	auto outAdjMask = computeOutadjMask();
-	ogdf::NodeSet<> couldBesubsumed(G);
+	ogdf::NodeSet couldBesubsumed(G);
 	for (auto it = G.nodes.begin(); it != G.nodes.end(); --i) {
 		OGDF_ASSERT(i >= 0); // protect against endless loops
 		auto u = *it;
