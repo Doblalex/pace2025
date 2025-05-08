@@ -118,7 +118,15 @@ public:
 			}
 		}
 		for (auto oe : other.hidden_edges) {
-			hidden_edges.hide(G.newEdge(nMap[oe->source()], nMap[oe->target()]));
+			auto ce = copyE(oe);
+			if (ce == nullptr) {
+				continue;
+			}
+			auto src = nMap[ce->source()];
+			auto tgt = nMap[ce->target()];
+			if (src != nullptr && tgt != nullptr) {
+				hidden_edges.hide(G.newEdge(src, tgt));
+			}
 		}
 	}
 
