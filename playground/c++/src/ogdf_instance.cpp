@@ -170,9 +170,13 @@ std::list<Instance> Instance::decomposeConnectedComponents() {
 	ogdf::Graph::CCsInfo CC(G);
 	std::list<Instance> instances;
 	if (CC.numberOfCCs() > 1) {
-		ogdf::NodeArray<ogdf::node> nMap(G, nullptr); // can safely be reused for different CCs
+		ogdf::NodeArray<ogdf::node> nMap(G, nullptr);
 		ogdf::EdgeArray<ogdf::edge> eMap(G, nullptr);
 		for (int i = 0; i < CC.numberOfCCs(); ++i) {
+			if (i > 0) {
+				nMap.fillWithDefault();
+				// eMap can safely be reused for different CCs
+			}
 			instances.emplace_back();
 			Instance& I = instances.back();
 			I.G.insert(CC, i, nMap, eMap);
@@ -208,7 +212,7 @@ bool Instance::reductionBCTree(int depth) {
 	const auto copy_e = [&BC](ogdf::edge n) {
 		OGDF_ASSERT(n->graphOf() == &BC.originalGraph());
 		auto cn = BC.rep(n);
-		OGDF_ASSERT(cn->graphOf() == &BC.auxiliaryGraph());
+		OGDF_ASSERT(cn == nullptr || cn->graphOf() == &BC.auxiliaryGraph());
 		return cn;
 	};
 
