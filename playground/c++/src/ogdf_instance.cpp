@@ -7,10 +7,10 @@
 #include "ogdf/decomposition/StaticSPQRTree.h"
 #include "ogdf/energybased/FMMMLayout.h"
 #include "ogdf/fileformats/GraphIO.h"
-#include "ogdf/graphalg/Matching.h"
 #include "ogdf/layered/SugiyamaLayout.h"
 #include "ogdf_solver.hpp"
 #include "ogdf_subsetrefine.hpp"
+#include "hopcroftcarp.hpp"
 
 void Instance::dumpBCTree() {
 	std::string stamp = std::to_string(std::chrono::system_clock::now().time_since_epoch().count())
@@ -738,7 +738,7 @@ bool Instance::reductionSpecial1() {
 	// generalisation of RR 6 of https://www.sciencedirect.com/science/article/pii/S0166218X11002393
 	log << " *** Applying special reduction rule 1" << std::endl;
 	size_t applications = 0;
-	ogdf::NodeArray<ogdf::node> nodeinBipGraph(G, nullptr);
+	ogdf::NodeArray<u_int32_t> nodeinBipGraph(G, 0);
 	for (auto it = G.nodes.begin(); it != G.nodes.end();) {
 		auto Sv = *it;
 		it++;
@@ -750,21 +750,19 @@ bool Instance::reductionSpecial1() {
 			return true;
 		});
 		if (freq2neighs.size() > 1) {
-			ogdf::Graph B;
-			ogdf::List<ogdf::node> Left;
-			ogdf::List<ogdf::node> Right;
+			u_int32_t max = 0;
+			u_int32_t indexf = 0;
+			std::vector<std::pair<u_int32_t, u_int32_t>> edges;
 			for (auto n : freq2neighs) {
+				indexf++;
 				forAllCanBeDominatedBy(n, [&](ogdf::node Siv) {
 					if (Siv != Sv) {
-						auto nodeSiv = B.newNode();
-						Left.emplaceBack(nodeSiv);
 						forAllCanDominate(Siv, [&](ogdf::node adj) {
 							if (adj != n) {
-								if (nodeinBipGraph[adj] == nullptr) {
-									nodeinBipGraph[adj] = B.newNode();
-									Right.emplaceBack(nodeinBipGraph[adj]);
+								if (nodeinBipGraph[adj] == 0) {
+									nodeinBipGraph[adj] = ++max;
 								}
-								B.newEdge(nodeSiv, nodeinBipGraph[adj]);
+								edges.push_back({indexf, nodeinBipGraph[adj]});
 							}
 							return true;
 						});
@@ -776,20 +774,25 @@ bool Instance::reductionSpecial1() {
 				forAllCanBeDominatedBy(n, [&](ogdf::node Siv) {
 					if (Siv != Sv) {
 						forAllCanDominate(Siv, [&](ogdf::node adj) {
-							nodeinBipGraph[adj] = nullptr;
+							nodeinBipGraph[adj] = 0;
 							return true;
 						});
 					}
 					return true;
 				});
 			}
-			ogdf::EdgeArray<bool> eMap(B);
-			auto matching_size = ogdf::Matching::findMaximumCardinalityMatching(B, Left, Right, eMap);
-			log << matching_size << " " << Left.size() << std::endl;
-			if (matching_size < Left.size()) {
+			BipartiteGraph B(freq2neighs.size(), max);
+			for (auto& e: edges) {
+				B.add_edge(e.first, e.second);
+			}
+			auto matching_size = B.hopcroftKarp_algorithm();
+			if (matching_size < freq2neighs.size()) {
 				applications++;
 				log << "Special reduction rule can dominate vertex" << std::endl;
 				addToDominatingSet(Sv);
+			}
+			else {
+				OGDF_ASSERT(matching_size == freq2neighs.size());
 			}
 		}
 	}

@@ -2,7 +2,7 @@
     "cmake.debugConfig": {
         "args": [
             "<",
-            "../../../instances/official/ds/exact/exact_022.gr"
+            "../../../instances/official/ds/exact/exact_017.gr"
         ]
     },
     "files.associations": {
