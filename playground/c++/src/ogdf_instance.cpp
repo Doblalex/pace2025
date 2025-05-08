@@ -7,6 +7,7 @@
 #include "ogdf/decomposition/StaticSPQRTree.h"
 #include "ogdf/energybased/FMMMLayout.h"
 #include "ogdf/fileformats/GraphIO.h"
+#include "ogdf/graphalg/Matching.h"
 #include "ogdf/layered/SugiyamaLayout.h"
 #include "ogdf_solver.hpp"
 #include "ogdf_subsetrefine.hpp"
@@ -714,6 +715,7 @@ bool Instance::reductionContraction() {
 				safeDelete(takev, it);
 				cnt_removed++;
 				is_dominated[u] = false;
+				removeHiddenIncomingEdges(u);
 			}
 
 			forAllOutAdj(u, [&](ogdf::adjEntry adj) {
@@ -726,4 +728,66 @@ bool Instance::reductionContraction() {
 		log << "Contraction removed " << cnt_removed << " vertices" << std::endl;
 	}
 	return cnt_removed > 0;
+}
+
+bool Instance::reductionSpecial1() {
+	// generalisation of RR 6 of https://www.sciencedirect.com/science/article/pii/S0166218X11002393
+	log << " *** Applying special reduction rule 1" << std::endl;
+	size_t applications = 0;
+	ogdf::NodeArray<ogdf::node> nodeinBipGraph(G, nullptr);
+	for (auto it = G.nodes.begin(); it != G.nodes.end();) {
+		auto Sv = *it;
+		it++;
+		std::vector<ogdf::node> freq2neighs;
+		forAllCanDominate(Sv, [&](ogdf::node adj) {
+			if (countCanBeDominatedBy(adj) == 2) {
+				freq2neighs.push_back(adj);
+			}
+			return true;
+		});
+		if (freq2neighs.size() > 1) {
+			ogdf::Graph B;
+			ogdf::List<ogdf::node> Left;
+			ogdf::List<ogdf::node> Right;
+			for (auto n : freq2neighs) {
+				forAllCanBeDominatedBy(n, [&](ogdf::node Siv) {
+					if (Siv != Sv) {
+						auto nodeSiv = B.newNode();
+						Left.emplaceBack(nodeSiv);
+						forAllCanDominate(Siv, [&](ogdf::node adj) {
+							if (adj != n) {
+								if (nodeinBipGraph[adj] == nullptr) {
+									nodeinBipGraph[adj] = B.newNode();
+									Right.emplaceBack(nodeinBipGraph[adj]);
+								}
+								B.newEdge(nodeSiv, nodeinBipGraph[adj]);
+							}
+							return true;
+						});
+					}
+					return true;
+				});
+			}
+			for (auto n : freq2neighs) {
+				forAllCanBeDominatedBy(n, [&](ogdf::node Siv) {
+					if (Siv != Sv) {
+						forAllCanDominate(Siv, [&](ogdf::node adj) {
+							nodeinBipGraph[adj] = nullptr;
+							return true;
+						});
+					}
+					return true;
+				});
+			}
+			ogdf::EdgeArray<bool> eMap(B);
+			auto matching_size = ogdf::Matching::findMaximumCardinalityMatching(B, Left, Right, eMap);
+			log << matching_size << " " << Left.size() << std::endl;
+			if (matching_size < Left.size()) {
+				applications++;
+				log << "Special reduction rule can dominate vertex" << std::endl;
+				addToDominatingSet(Sv);
+			}
+		}
+	}
+	return applications > 0;
 }

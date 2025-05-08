@@ -192,6 +192,12 @@ public:
 			markDominated(adj->twinNode());
 			return true;
 		});
+		ogdf::safeForEach(hidden_edges.adjEntries(v), [&](ogdf::adjEntry adj) {
+			if (adj->isSource()) { // now that the successors are really dominated, they cannot have hidden incoming edges anymore!
+				markDominated(adj->twinNode());
+			}
+			return true;
+		});
 		{
 			auto gll = logger.globalLogLevel();
 			logger.globalLogLevel(ogdf::Logger::Level::Alarm);
@@ -200,7 +206,7 @@ public:
 		}
 	}
 
-	void markDominated(ogdf::node v) {
+	void markDominated(ogdf::node v, bool byreduction = false) {
 		is_dominated[v] = true;
 		forAllInAdj(v, [&](ogdf::adjEntry adj) {
 			ogdf::edge e = adj->theEdge();
@@ -209,9 +215,17 @@ public:
 				OGDF_ASSERT(reverse_edge[r] == e);
 				reverse_edge[r] = nullptr;
 			}
-			hidden_edges.hide(e);
+			if (byreduction) {
+				hidden_edges.hide(e);
+			} else {
+				G.delEdge(e);
+			}
 			return true;
 		});
+		if (!byreduction) {
+			// v is really dominated, so we need to remove incoming hidden edges
+			removeHiddenIncomingEdges(v);
+		}
 	}
 
 	void markSubsumed(ogdf::node v) {
@@ -220,12 +234,33 @@ public:
 			safeDelete(adj->theEdge());
 			return true;
 		});
+		removeHiddenOutgoingEdges(v);
 	}
 
 	void removeHiddenEdges(ogdf::node n) {
 		ogdf::safeForEach(hidden_edges.adjEntries(n), [&](ogdf::adjEntry adj) {
 			hidden_edges.restore(adj->theEdge());
 			G.delEdge(adj->theEdge());
+		});
+	}
+
+	void removeHiddenIncomingEdges(ogdf::node n) {
+		ogdf::safeForEach(hidden_edges.adjEntries(n), [&](ogdf::adjEntry adj) {
+			if (!adj->isSource()) {
+				hidden_edges.restore(adj->theEdge());
+				G.delEdge(adj->theEdge());
+			}
+			return true;
+		});
+	}
+
+	void removeHiddenOutgoingEdges(ogdf::node n) {
+		ogdf::safeForEach(hidden_edges.adjEntries(n), [&](ogdf::adjEntry adj) {
+			if (adj->isSource()) {
+				hidden_edges.restore(adj->theEdge());
+				G.delEdge(adj->theEdge());
+			}
+			return true;
 		});
 	}
 
@@ -276,6 +311,8 @@ public:
 	std::list<Instance> decomposeConnectedComponents();
 
 	bool reductionBCTree(int depth = 0);
+
+	bool reductionSpecial1();
 
 	std::pair<size_t, size_t> dominationStats() {
 		size_t can = 0, needs = 0;

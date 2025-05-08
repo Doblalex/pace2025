@@ -188,11 +188,11 @@ void solveEvalMaxSat(Instance& I) {
 #endif
 	std::vector<int> clause;
 	for (auto v : I.G.nodes) {
-		if (I.is_dominated[v]) {
-			continue;
-		}
+		// if (I.is_dominated[v]) { // might have hidden edges
+		// 	continue;
+		// }
 		clause.clear();
-		clause.reserve(v->indeg() + 1);
+		// clause.reserve(v->indeg() + 1);
 #ifdef EMS_CACHE
 		hclauses.emplace_back();
 		hclauses.back().reserve(v->indeg() + 1);
@@ -215,6 +215,9 @@ void solveEvalMaxSat(Instance& I) {
 		};
 		forAllInAdj(v, add_neigh);
 		ogdf::safeForEach(I.hidden_edges.adjEntries(v), add_neigh);
+		if (clause.empty()) {
+			continue;
+		}
 		solver.addClause(clause); //hard clause
 #ifdef EMS_CACHE
 		std::sort(hclauses.back().begin(), hclauses.back().end());

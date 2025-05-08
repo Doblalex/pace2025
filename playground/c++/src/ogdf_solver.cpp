@@ -43,6 +43,8 @@ void reduceAndSolve(Instance& I, int d) {
 			changed = true;
 		} else if (I.reductionContraction()) {
 			changed = true;
+		} else if (I.reductionSpecial1()) {
+			changed = true;
 		} else if (I.reductionBCTree(d)) {
 			changed = true;
 		}
