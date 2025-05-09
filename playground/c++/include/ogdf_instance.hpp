@@ -36,17 +36,7 @@ public:
 	OGDF_NO_MOVE(Instance)
 
 	void clear() {
-		for (auto it = hidden_edges.begin(); it != hidden_edges.end();) {
-			auto adj = *it;
-			++it;
-			hidden_edges.restore(adj);
-		};
-		G.clear();
-		G.clear();
-		G.clear();
-		G.clear();
-		G.clear();
-		G.clear();
+		hidden_edges.restore();
 		G.clear();
 		// DS.clear(); Do not clear DS! This value is still used after computing connected components
 		node2ID.init(G, -1);

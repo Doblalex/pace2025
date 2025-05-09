@@ -319,15 +319,13 @@ bool Instance::reductionBCTree(int depth) {
 			LAZY_INSTANCE(I2, "I2: Computing normal ds(X_B).", , 20);
 			LAZY_INSTANCE(I3, "I3: Computing ds(X_B) containing v.",
 					I3->addToDominatingSet(nMap[h_cv]), 30);
-
 			auto smaller_DS_no_CV = [&] { return get_I1().DS.size() < get_I2().DS.size(); };
 			std::unordered_set<int>* opt_DS_with_CV = nullptr;
 			auto opt_DS_has_CV = [&] {
 				if (opt_DS_with_CV) {
 					return true;
 				}
-				if (std::find(get_I2().DS.begin(), get_I2().DS.end(), node2ID[cv])
-						!= get_I2().DS.end()) {
+				if (get_I2().DS.find(node2ID[cv]) != get_I2().DS.end()) {
 					log << "RR-BC Case 2A(sc): The ds(X_B) from I2 already contains v." << std::endl;
 					opt_DS_with_CV = &get_I2().DS;
 					return true;
@@ -405,7 +403,7 @@ bool Instance::reductionBCTree(int depth) {
 				auto cv_id = node2ID[cv];
 				addToDominatingSet(cv);
 				// OGDF_ASSERT(DS.back() == cv_id);
-				DS.erase(cv_id);
+				// DS.erase(cv_id);
 				++r;
 			}
 		}

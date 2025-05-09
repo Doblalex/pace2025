@@ -2,9 +2,10 @@
     "cmake.debugConfig": {
         "args": [
             "<",
-            "../../../instances/official/ds/exact/exact_033.gr"
+            "../../../instances/official/ds/exact/exact_017.gr"
         ]
     },
+    "cmake.buildDirectory": "${workspaceFolder}/build-debug",
     "cmake.configureSettings": {
         "CMAKE_BUILD_TYPE": "Debug",
         "PACE_USE_ASAN": "ON"
