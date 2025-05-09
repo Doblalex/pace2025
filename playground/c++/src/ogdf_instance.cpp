@@ -835,6 +835,7 @@ bool Instance::reductionSpecial2(int d) {
 				markSubsumed(Rivs[1]);
 				markDominated(freq2neighs[0]);
 				markDominated(freq2neighs[1]);
+				OGDF_ASSERT(Rivs.size() == 2);
 				auto Rvid = node2ID[Rv];
 				auto Rv1id = node2ID[Rivs[0]];
 				auto Rv2id = node2ID[Rivs[1]];
@@ -852,10 +853,10 @@ bool Instance::reductionSpecial2(int d) {
 				if (DS.find(qid) != DS.end()) {
 					DS.insert(Rv1id);
 					DS.insert(Rv2id);
+					DS.erase(qid);
 				} else {
 					DS.insert(Rvid);
 				}
-				DS.erase(qid);
 				return true;
 			}
 		}
