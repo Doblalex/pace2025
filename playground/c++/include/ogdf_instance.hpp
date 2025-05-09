@@ -204,7 +204,6 @@ public:
 			if (adj->isSource()) { // now that the successors are really dominated, they cannot have hidden incoming edges anymore!
 				markDominated(adj->twinNode());
 			}
-			return true;
 		});
 		{
 			auto gll = logger.globalLogLevel();
@@ -258,7 +257,6 @@ public:
 				hidden_edges.restore(adj->theEdge());
 				G.delEdge(adj->theEdge());
 			}
-			return true;
 		});
 	}
 
@@ -268,7 +266,6 @@ public:
 				hidden_edges.restore(adj->theEdge());
 				G.delEdge(adj->theEdge());
 			}
-			return true;
 		});
 	}
 
@@ -321,6 +318,8 @@ public:
 	bool reductionBCTree(int depth = 0);
 
 	bool reductionSpecial1();
+
+	// bool reductionSpecial2();
 
 	std::pair<size_t, size_t> dominationStats() {
 		size_t can = 0, needs = 0;

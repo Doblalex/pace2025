@@ -43,7 +43,7 @@ void ReductionTreeDecomposition::computeDecomposition() {
 	htd::TreeDecompositionOptimizationOperation* operation =
 			new htd::TreeDecompositionOptimizationOperation(manager.get(), fitnessFunction.clone());
 	operation->setManagementInstance(manager.get());
-	operation->setVertexSelectionStrategy(new htd::RandomVertexSelectionStrategy(10));
+	operation->setVertexSelectionStrategy(new htd::RandomVertexSelectionStrategy(3));
 	operation->addManipulationOperation(
 			new htd::NormalizationOperation(manager.get(), false, false, true, true));
 	manager->orderingAlgorithmFactory().setConstructionTemplate(
@@ -55,20 +55,31 @@ void ReductionTreeDecomposition::computeDecomposition() {
 			fitnessFunction.clone());
 	algorithm.setIterationCount(10);
 	algorithm.setNonImprovementLimit(3);
-
-	auto t = std::async(
-			std::launch::async,
-			[](int cnt) {
-				log << "Waiting for termination signal..." << std::endl;
-				std::this_thread::sleep_for(std::chrono::seconds(1));
-				mtx.lock();
-				if (terminate_counter == cnt) {
-					log << "Terminating tree decomposition computation!" << std::endl;
-					manager->terminate();
-				}
-				mtx.unlock();
-			},
-			terminate_counter);
+	
+	std::thread([](int cnt) {
+		log << "Waiting for termination signal..." << std::endl;
+		std::this_thread::sleep_for(std::chrono::seconds(1));
+		mtx.lock();
+		if (terminate_counter == cnt) {
+			log << "Terminating tree decomposition computation!" << std::endl;
+			manager->terminate();
+		}
+		mtx.unlock();
+	},
+	terminate_counter).detach();
+	// auto t = std::async(
+	// 		std::launch::async,
+	// 		[](int cnt) {
+	// 			log << "Waiting for termination signal..." << std::endl;
+	// 			std::this_thread::sleep_for(std::chrono::seconds(1));
+	// 			mtx.lock();
+	// 			if (terminate_counter == cnt) {
+	// 				log << "Terminating tree decomposition computation!" << std::endl;
+	// 				manager->terminate();
+	// 			}
+	// 			mtx.unlock();
+	// 		},
+	// 		terminate_counter);
 
 	std::size_t optimalBagSize = (std::size_t)-1;
 	decomposition = algorithm.computeDecomposition(*graph,

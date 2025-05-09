@@ -130,7 +130,7 @@ endif()
 
 # OGDF -----------------------------------------------------------------
 if(PACE_USE_OGDF)
-  # find_package(OGDF)
+  find_package(OGDF)
   add_compile_definitions(USE_OGDF)
 
   IF(${OGDF_FOUND})
