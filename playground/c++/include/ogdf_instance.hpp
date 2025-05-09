@@ -88,6 +88,21 @@ public:
 				}
 			}
 
+			for (auto adj : other.hidden_edges.adjEntries(on)) {
+				if (!adj->isSource()) {
+					continue;
+				}
+				auto ce = copyE(adj->theEdge());
+				if (ce == nullptr) {
+					continue;
+				}
+				auto src = nMap[ce->source()];
+				auto tgt = nMap[ce->target()];
+				if (src != nullptr && tgt != nullptr) {
+					hidden_edges.hide(G.newEdge(src, tgt));
+				}
+			}
+
 #if 0
             if (!(!is_dominated[tn] || tn->indeg() == 0)) {
                 {
@@ -115,17 +130,6 @@ public:
 				reverse_edge[eMap[e]] = eMap[copyE(ore)];
 			} else {
 				reverse_edge[eMap[e]] = nullptr;
-			}
-		}
-		for (auto oe : other.hidden_edges) {
-			auto ce = copyE(oe);
-			if (ce == nullptr) {
-				continue;
-			}
-			auto src = nMap[ce->source()];
-			auto tgt = nMap[ce->target()];
-			if (src != nullptr && tgt != nullptr) {
-				hidden_edges.hide(G.newEdge(src, tgt));
 			}
 		}
 	}
