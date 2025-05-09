@@ -1,5 +1,6 @@
 #include "ogdf_instance.hpp"
 
+#include "hopcroftcarp.hpp"
 #include "ogdf/basic/GraphAttributes.h"
 #include "ogdf/basic/GraphSets.h"
 #include "ogdf/basic/simple_graph_alg.h"
@@ -10,7 +11,6 @@
 #include "ogdf/layered/SugiyamaLayout.h"
 #include "ogdf_solver.hpp"
 #include "ogdf_subsetrefine.hpp"
-#include "hopcroftcarp.hpp"
 
 void Instance::dumpBCTree() {
 	std::string stamp = std::to_string(std::chrono::system_clock::now().time_since_epoch().count())
@@ -321,7 +321,7 @@ bool Instance::reductionBCTree(int depth) {
 					I3->addToDominatingSet(nMap[h_cv]), 30);
 
 			auto smaller_DS_no_CV = [&] { return get_I1().DS.size() < get_I2().DS.size(); };
-			std::vector<int>* opt_DS_with_CV = nullptr;
+			std::unordered_set<int>* opt_DS_with_CV = nullptr;
 			auto opt_DS_has_CV = [&] {
 				if (opt_DS_with_CV) {
 					return true;
@@ -404,8 +404,8 @@ bool Instance::reductionBCTree(int depth) {
 				OGDF_ASSERT(replaced[node] == Replaced::AddToDS);
 				auto cv_id = node2ID[cv];
 				addToDominatingSet(cv);
-				OGDF_ASSERT(DS.back() == cv_id);
-				DS.pop_back();
+				// OGDF_ASSERT(DS.back() == cv_id);
+				DS.erase(cv_id);
 				++r;
 			}
 		}
@@ -736,7 +736,6 @@ bool Instance::reductionContraction() {
 
 bool Instance::reductionSpecial1() {
 	// generalisation of RR 6 of https://www.sciencedirect.com/science/article/pii/S0166218X11002393
-	log << " *** Applying special reduction rule 1" << std::endl;
 	size_t applications = 0;
 	ogdf::NodeArray<u_int32_t> nodeinBipGraph(G, 0);
 	for (auto it = G.nodes.begin(); it != G.nodes.end();) {
@@ -782,19 +781,84 @@ bool Instance::reductionSpecial1() {
 				});
 			}
 			BipartiteGraph B(freq2neighs.size(), max);
-			for (auto& e: edges) {
+			for (auto& e : edges) {
 				B.add_edge(e.first, e.second);
 			}
 			auto matching_size = B.hopcroftKarp_algorithm();
 			if (matching_size < freq2neighs.size()) {
 				applications++;
-				log << "Special reduction rule can dominate vertex" << std::endl;
 				addToDominatingSet(Sv);
-			}
-			else {
+			} else {
 				OGDF_ASSERT(matching_size == freq2neighs.size());
 			}
 		}
 	}
+	if (applications > 0) {
+		log << "Special reduction rule 1 can dominate " << applications << " vertices" << std::endl;
+	}
+
 	return applications > 0;
+}
+
+bool Instance::reductionSpecial2(int d) {
+	for (auto it = G.nodes.begin(); it != G.nodes.end();) {
+		auto Rv = *it;
+		it++;
+		if (countCanDominate(Rv) == 2) {
+			std::vector<ogdf::node> freq2neighs;
+			forAllCanDominate(Rv, [&](ogdf::node adj) {
+				if (countCanBeDominatedBy(adj) == 2) {
+					freq2neighs.push_back(adj);
+				}
+				return true;
+			});
+			if (freq2neighs.size() == 2) {
+				std::unordered_set<ogdf::node> Q;
+				std::vector<ogdf::node> Rivs;
+				for (auto n : freq2neighs) {
+					forAllCanBeDominatedBy(n, [&](ogdf::node Riv) {
+						if (Riv != Rv) {
+							Rivs.push_back(Riv);
+							forAllCanDominate(Riv, [&](ogdf::node adj) {
+								if (adj != n) {
+									Q.insert(adj);
+								}
+								return true;
+							});
+						}
+						return true;
+					});
+				}
+				log << "** Applying special reduction rule 2" << std::endl;
+				markSubsumed(Rv);
+				markSubsumed(Rivs[0]);
+				markSubsumed(Rivs[1]);
+				markDominated(freq2neighs[0]);
+				markDominated(freq2neighs[1]);
+				auto Rvid = node2ID[Rv];
+				auto Rv1id = node2ID[Rivs[0]];
+				auto Rv2id = node2ID[Rivs[1]];
+
+				auto qnode = G.newNode();
+				node2ID[qnode] = ++maxid;
+				auto qid = maxid;
+				markDominated(qnode);
+				for (auto q : Q) {
+					auto e = G.newEdge(qnode, ogdf::Direction::before, q, ogdf::Direction::after);
+					reverse_edge[e] = nullptr;
+				}
+				Q.clear();
+				reduceAndSolve(*this, d);
+				if (DS.find(qid) != DS.end()) {
+					DS.insert(Rv1id);
+					DS.insert(Rv2id);
+				} else {
+					DS.insert(Rvid);
+				}
+				DS.erase(qid);
+				return true;
+			}
+		}
+	}
+	return false;
 }

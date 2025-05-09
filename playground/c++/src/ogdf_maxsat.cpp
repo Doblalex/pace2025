@@ -148,7 +148,7 @@ bool try_load_solution(Instance& I, std::vector<std::vector<int>>& hclauses, std
 			std::ifstream f(filename);
 			int id;
 			while (f >> id) {
-				I.DS.push_back(id);
+				I.DS.insert(id);
 				l << " " << id;
 			}
 			l << "\n";
@@ -244,7 +244,7 @@ void solveEvalMaxSat(Instance& I) {
 	for (auto v : I.G.nodes) {
 		if (!I.is_subsumed[v]) {
 			if (solver.getValue(varmap[v])) {
-				I.DS.push_back(I.node2ID[v]);
+				I.DS.insert(I.node2ID[v]);
 				l << " " << I.node2ID[v];
 #ifdef EMS_CACHE
 				f << " " << I.node2ID[v];
@@ -334,7 +334,7 @@ void solvecpsat(Instance& I) {
 	for (auto v : I.G.nodes) {
 		if (!I.is_subsumed[v]) {
 			if (varmap[v]->solution_value() > 0.5) {
-				I.DS.push_back(I.node2ID[v]);
+				I.DS.insert(I.node2ID[v]);
 				l << " " << I.node2ID[v];
 #	ifdef EMS_CACHE
 				f << " " << I.node2ID[v];

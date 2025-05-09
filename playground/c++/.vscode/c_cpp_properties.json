@@ -5,8 +5,6 @@
             "includePath": [
                 "${workspaceFolder}/**",
                 "${workspaceFolder}/ext/ogdf/include",
-                "/opt/gurobi1100/linux64/include"
-
             ],
             "defines": [],
             "compilerPath": "/usr/bin/clang",

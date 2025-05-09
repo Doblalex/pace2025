@@ -56,9 +56,9 @@ size_t SubsetRefine::doRefinementReduction() {
 		isrefinedby[v] = true;
 	}
 
-	log << "Partition refinement structure has " << refineG.numberOfNodes() << " nodes and "
-		<< refineG.numberOfEdges() << " edges" << std::endl;
-	log << "In total, the structure had " << cntedgesadded << " edges added." << std::endl;
+	// log << "Partition refinement structure has " << refineG.numberOfNodes() << " nodes and "
+	// 	<< refineG.numberOfEdges() << " edges" << std::endl;
+	// log << "In total, the structure had " << cntedgesadded << " edges added." << std::endl;
 	for (auto bag : refineG.nodes) {
 		if (bag->indeg() > 0) {
 			auto vec = bagNodeVec[bag];

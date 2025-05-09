@@ -5,7 +5,10 @@
             "../../../instances/official/ds/exact/exact_017.gr"
         ]
     },
-    "cmake.configureSettings": {"CMAKE_BUILD_TYPE": "Debug", "PACE_USE_ASAN": "ON"},
+    "cmake.configureSettings": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "PACE_USE_ASAN": "ON"
+    },
     "files.associations": {
         "*.ipp": "cpp",
         "array": "cpp",
@@ -104,5 +107,9 @@
         "hash_set": "cpp",
         "*.inc": "cpp"
     },
-    "C_Cpp.errorSquiggles": "enabled"
+    "C_Cpp.errorSquiggles": "enabled",
+    "files.exclude": {
+        "ext/or-tools": true,
+        "ext/ogdf/src": true
+    }
 }

@@ -1,5 +1,7 @@
 #pragma once
 
+#include <unordered_set>
+
 #include "ogdf_util.hpp"
 
 struct Instance {
@@ -15,12 +17,13 @@ public:
 	ogdf::Graph G;
 	// std::vector<ogdf::node> ID2node;
 	ogdf::NodeArray<int> node2ID;
-	std::vector<int> DS;
+	std::unordered_set<int> DS;
 	ogdf::NodeArray<bool> is_dominated;
 	ogdf::NodeArray<bool> is_subsumed;
 	ogdf::EdgeArray<ogdf::edge> reverse_edge;
 	ogdf::Graph::DynamicHiddenEdgeSet hidden_edges;
 	std::hash<ogdf::node> nodehash;
+	size_t maxid;
 
 	Instance()
 		: node2ID(G, -1)
@@ -33,6 +36,17 @@ public:
 	OGDF_NO_MOVE(Instance)
 
 	void clear() {
+		for (auto it = hidden_edges.begin(); it != hidden_edges.end();) {
+			auto adj = *it;
+			++it;
+			hidden_edges.restore(adj);
+		};
+		G.clear();
+		G.clear();
+		G.clear();
+		G.clear();
+		G.clear();
+		G.clear();
 		G.clear();
 		// DS.clear(); Do not clear DS! This value is still used after computing connected components
 		node2ID.init(G, -1);
@@ -67,6 +81,7 @@ public:
 		for (auto n : nodes) {
 			auto tn = nMap[n];
 			auto on = originalN(n);
+			// other.hidden_edges.adjEntries(n) TODO
 			node2ID[tn] = other.node2ID[on];
 			is_dominated[tn] = other.is_dominated[on];
 			is_subsumed[tn] = other.is_subsumed[on];
@@ -128,6 +143,7 @@ public:
 				hidden_edges.hide(G.newEdge(src, tgt));
 			}
 		}
+		this->maxid = other.maxid;
 	}
 
 	void read(std::istream& is) {
@@ -183,11 +199,11 @@ public:
 			l << " " << *it;
 		}
 		l << std::endl;
-		DS.insert(DS.end(), begin, end);
+		std::copy(begin, end, std::inserter(DS, DS.end()));
 		log << "Updated DS" << (comment.empty() ? "" : " with ") << comment << ": " << before << "+"
 			<< (DS.size() - before) << "=" << DS.size() << std::endl;
 #else
-		DS.insert(DS.end(), begin, end);
+		std::copy(begin, end, std::inserter(DS, DS.end()));
 #endif
 	}
 
@@ -195,7 +211,7 @@ public:
 	void addToDominatingSet(ogdf::node v, ogdf::Graph::node_iterator& it) {
 		OGDF_ASSERT(!is_subsumed[v]);
 		logd << "\tadd to DS " << node2ID[v] << std::endl;
-		DS.push_back(node2ID[v]);
+		DS.insert(node2ID[v]);
 		forAllOutAdj(v, [&](ogdf::adjEntry adj) {
 			markDominated(adj->twinNode());
 			return true;
@@ -319,7 +335,7 @@ public:
 
 	bool reductionSpecial1();
 
-	// bool reductionSpecial2();
+	bool reductionSpecial2(int d);
 
 	std::pair<size_t, size_t> dominationStats() {
 		size_t can = 0, needs = 0;

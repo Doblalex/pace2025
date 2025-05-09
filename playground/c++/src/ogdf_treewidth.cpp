@@ -55,18 +55,20 @@ void ReductionTreeDecomposition::computeDecomposition() {
 			fitnessFunction.clone());
 	algorithm.setIterationCount(10);
 	algorithm.setNonImprovementLimit(3);
-	
-	std::thread([](int cnt) {
-		log << "Waiting for termination signal..." << std::endl;
-		std::this_thread::sleep_for(std::chrono::seconds(1));
-		mtx.lock();
-		if (terminate_counter == cnt) {
-			log << "Terminating tree decomposition computation!" << std::endl;
-			manager->terminate();
-		}
-		mtx.unlock();
-	},
-	terminate_counter).detach();
+
+	std::thread(
+			[](int cnt) {
+				log << "Waiting for termination signal..." << std::endl;
+				std::this_thread::sleep_for(std::chrono::seconds(1));
+				mtx.lock();
+				if (terminate_counter == cnt) {
+					log << "Terminating tree decomposition computation!" << std::endl;
+					manager->terminate();
+				}
+				mtx.unlock();
+			},
+			terminate_counter)
+			.detach();
 	// auto t = std::async(
 	// 		std::launch::async,
 	// 		[](int cnt) {
@@ -600,7 +602,7 @@ int ReductionTreeDecomposition::solveDPExact() {
 					auto status = sigAt(chosensig[curbag], introducedindex);
 					if (status == TW_INDS && addednodes.find(introducedvertex) == addednodes.end()) {
 						addednodes.insert(introducedvertex);
-						I.DS.push_back(I.node2ID(introducedvertex));
+						I.DS.insert(I.node2ID(introducedvertex));
 					}
 					for (auto u : decomposition->children(curbag)) {
 						if (chosensig.size() <= u) {
