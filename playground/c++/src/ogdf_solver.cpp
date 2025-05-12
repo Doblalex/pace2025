@@ -43,6 +43,11 @@ void reduceAndSolve(Instance& I, int d) {
 			changed = true;
 		} else if (I.reductionContraction()) {
 			changed = true;
+		} else if (I.reductionSpecial1()) {
+			changed = true;
+		} else if (I.reductionSpecial2(d)) {
+			// instance is solved here
+			return;
 		} else if (I.reductionBCTree(d)) {
 			changed = true;
 		}
@@ -51,7 +56,6 @@ void reduceAndSolve(Instance& I, int d) {
 		//OGDF_ASSERT(!changed || I.G.numberOfNodes() < n || I.G.numberOfEdges() < m);
 		++i;
 	}
-
 
 	if (I.G.numberOfNodes() < 1) {
 		log << "Reduced instance is empty with DS " << I.DS.size() << "!" << std::endl;

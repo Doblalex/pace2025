@@ -21,6 +21,7 @@ void Instance::read(std::istream& is, std::vector<ogdf::node>& ID2node) {
 		ID2node.push_back(n);
 		node2ID[n] = i;
 	}
+	maxid = n;
 	for (int i = 0; i < m; i++) {
 		getline(is, line);
 		if (line.empty() || line[0] == 'c') {

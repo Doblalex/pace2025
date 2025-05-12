@@ -17,7 +17,7 @@ void ReductionTreeDecomposition::computeDecomposition() {
 		nodeid[v] = ++cnt;
 		idnode[cnt] = v;
 	}
-	ogdf::NodeSet<true> added(G);
+	ogdf::NodeSet added(G);
 	size_t i = 0;
 	for (auto u : G.nodes) {
 		forAllOutAdj(u, [&](ogdf::adjEntry adj) {
@@ -43,7 +43,7 @@ void ReductionTreeDecomposition::computeDecomposition() {
 	htd::TreeDecompositionOptimizationOperation* operation =
 			new htd::TreeDecompositionOptimizationOperation(manager.get(), fitnessFunction.clone());
 	operation->setManagementInstance(manager.get());
-	operation->setVertexSelectionStrategy(new htd::RandomVertexSelectionStrategy(10));
+	operation->setVertexSelectionStrategy(new htd::RandomVertexSelectionStrategy(3));
 	operation->addManipulationOperation(
 			new htd::NormalizationOperation(manager.get(), false, false, true, true));
 	manager->orderingAlgorithmFactory().setConstructionTemplate(
@@ -56,23 +56,32 @@ void ReductionTreeDecomposition::computeDecomposition() {
 	algorithm.setIterationCount(10);
 	algorithm.setNonImprovementLimit(3);
 
-	std::packaged_task<int(int)> task([&](int cnt) {
-		log << "Waiting for termination signal..." << std::endl;
-		std::this_thread::sleep_for(std::chrono::seconds(1));
-		mtx.lock();
-		int x = terminate_counter;
-		if (x == cnt) {
-			log << "Terminating tree decomposition computation!" << std::endl;
-			manager->terminate();
-		}
-		mtx.unlock();
-		return 0;
-	});
-	mtx.lock();
-	std::future<int> f1 = task.get_future(); // get a future
-	std::thread t(std::move(task), terminate_counter); // launch on a thread
-	t.detach();
-	mtx.unlock();
+	std::thread(
+			[](int cnt) {
+				log << "Waiting for termination signal..." << std::endl;
+				std::this_thread::sleep_for(std::chrono::seconds(1));
+				mtx.lock();
+				if (terminate_counter == cnt) {
+					log << "Terminating tree decomposition computation!" << std::endl;
+					manager->terminate();
+				}
+				mtx.unlock();
+			},
+			terminate_counter)
+			.detach();
+	// auto t = std::async(
+	// 		std::launch::async,
+	// 		[](int cnt) {
+	// 			log << "Waiting for termination signal..." << std::endl;
+	// 			std::this_thread::sleep_for(std::chrono::seconds(1));
+	// 			mtx.lock();
+	// 			if (terminate_counter == cnt) {
+	// 				log << "Terminating tree decomposition computation!" << std::endl;
+	// 				manager->terminate();
+	// 			}
+	// 			mtx.unlock();
+	// 		},
+	// 		terminate_counter);
 
 	std::size_t optimalBagSize = (std::size_t)-1;
 	decomposition = algorithm.computeDecomposition(*graph,
@@ -593,7 +602,7 @@ int ReductionTreeDecomposition::solveDPExact() {
 					auto status = sigAt(chosensig[curbag], introducedindex);
 					if (status == TW_INDS && addednodes.find(introducedvertex) == addednodes.end()) {
 						addednodes.insert(introducedvertex);
-						I.DS.push_back(I.node2ID(introducedvertex));
+						I.DS.insert(I.node2ID(introducedvertex));
 					}
 					for (auto u : decomposition->children(curbag)) {
 						if (chosensig.size() <= u) {

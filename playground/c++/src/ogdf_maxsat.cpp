@@ -148,7 +148,7 @@ bool try_load_solution(Instance& I, std::vector<std::vector<int>>& hclauses, std
 			std::ifstream f(filename);
 			int id;
 			while (f >> id) {
-				I.DS.push_back(id);
+				I.DS.insert(id);
 				l << " " << id;
 			}
 			l << "\n";
@@ -188,31 +188,36 @@ void solveEvalMaxSat(Instance& I) {
 #endif
 	std::vector<int> clause;
 	for (auto v : I.G.nodes) {
-		if (I.is_dominated[v]) {
-			continue;
-		}
+		// if (I.is_dominated[v]) { // might have hidden edges
+		// 	continue;
+		// }
 		clause.clear();
-		clause.reserve(v->indeg() + 1);
+		// clause.reserve(v->indeg() + 1);
 #ifdef EMS_CACHE
 		hclauses.emplace_back();
 		hclauses.back().reserve(v->indeg() + 1);
 #endif
-		if (!I.is_subsumed[v]) {
+		if ((!I.is_subsumed[v] && !I.is_dominated[v]) || I.is_hidden_loop[v]) {
 			clause.push_back(varmap[v]);
 #ifdef EMS_CACHE
 			hclauses.back().push_back(I.node2ID[v]);
 #endif
 		}
-		forAllInAdj(v, [&](ogdf::adjEntry adj) {
+		auto add_neigh = [&](ogdf::adjEntry adj) {
 			auto w = adj->twinNode();
-			if (!I.is_subsumed[w]) {
+			if (!adj->isSource() && !I.is_subsumed[w]) {
 				clause.push_back(varmap[w]);
 #ifdef EMS_CACHE
 				hclauses.back().push_back(I.node2ID[w]);
 #endif
 			}
 			return true;
-		});
+		};
+		forAllInAdj(v, add_neigh);
+		ogdf::safeForEach(I.hidden_edges.adjEntries(v), add_neigh);
+		if (clause.empty()) {
+			continue;
+		}
 		solver.addClause(clause); //hard clause
 #ifdef EMS_CACHE
 		std::sort(hclauses.back().begin(), hclauses.back().end());
@@ -239,7 +244,7 @@ void solveEvalMaxSat(Instance& I) {
 	for (auto v : I.G.nodes) {
 		if (!I.is_subsumed[v]) {
 			if (solver.getValue(varmap[v])) {
-				I.DS.push_back(I.node2ID[v]);
+				I.DS.insert(I.node2ID[v]);
 				l << " " << I.node2ID[v];
 #ifdef EMS_CACHE
 				f << " " << I.node2ID[v];
@@ -293,16 +298,18 @@ void solvecpsat(Instance& I) {
 			hclauses.back().push_back(I.node2ID[v]);
 #	endif
 		}
-		forAllInAdj(v, [&](ogdf::adjEntry adj) {
+		auto add_neigh = [&](ogdf::adjEntry adj) {
 			auto w = adj->twinNode();
-			if (!I.is_subsumed[w]) {
+			if (!adj->isSource() && !I.is_subsumed[w]) {
 				expr += varmap[w];
 #	ifdef EMS_CACHE
 				hclauses.back().push_back(I.node2ID[w]);
 #	endif
 			}
 			return true;
-		});
+		};
+		forAllInAdj(v, add_neigh);
+		ogdf::safeForEach(I.hidden_edges.adjEntries(v), add_neigh);
 		solver->MakeRowConstraint(expr >= 1); //hard clause
 #	ifdef EMS_CACHE
 		std::sort(hclauses.back().begin(), hclauses.back().end());
@@ -327,7 +334,7 @@ void solvecpsat(Instance& I) {
 	for (auto v : I.G.nodes) {
 		if (!I.is_subsumed[v]) {
 			if (varmap[v]->solution_value() > 0.5) {
-				I.DS.push_back(I.node2ID[v]);
+				I.DS.insert(I.node2ID[v]);
 				l << " " << I.node2ID[v];
 #	ifdef EMS_CACHE
 				f << " " << I.node2ID[v];

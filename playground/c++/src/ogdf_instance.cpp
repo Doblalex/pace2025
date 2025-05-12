@@ -1,5 +1,6 @@
 #include "ogdf_instance.hpp"
 
+#include "hopcroftcarp.hpp"
 #include "ogdf/basic/GraphAttributes.h"
 #include "ogdf/basic/GraphSets.h"
 #include "ogdf/basic/simple_graph_alg.h"
@@ -20,7 +21,7 @@ void Instance::dumpBCTree() {
 	ogdf::BCTree BC(G);
 	ogdf::GraphAttributes BCA(BC.bcTree(), ogdf::GraphAttributes::all);
 	ogdf::GraphAttributes BA;
-	ogdf::NodeSet<> nodes(BC.auxiliaryGraph());
+	ogdf::NodeSet nodes(BC.auxiliaryGraph());
 	ogdf::NodeArray<ogdf::node> nMap(BC.auxiliaryGraph(), nullptr);
 	ogdf::EdgeArray<ogdf::edge> eMap(BC.auxiliaryGraph(), nullptr);
 
@@ -169,9 +170,13 @@ std::list<Instance> Instance::decomposeConnectedComponents() {
 	ogdf::Graph::CCsInfo CC(G);
 	std::list<Instance> instances;
 	if (CC.numberOfCCs() > 1) {
-		ogdf::NodeArray<ogdf::node> nMap(G, nullptr); // can safely be reused for different CCs
+		ogdf::NodeArray<ogdf::node> nMap(G, nullptr);
 		ogdf::EdgeArray<ogdf::edge> eMap(G, nullptr);
 		for (int i = 0; i < CC.numberOfCCs(); ++i) {
+			if (i > 0) {
+				nMap.fillWithDefault();
+				// eMap can safely be reused for different CCs
+			}
 			instances.emplace_back();
 			Instance& I = instances.back();
 			I.G.insert(CC, i, nMap, eMap);
@@ -207,11 +212,11 @@ bool Instance::reductionBCTree(int depth) {
 	const auto copy_e = [&BC](ogdf::edge n) {
 		OGDF_ASSERT(n->graphOf() == &BC.originalGraph());
 		auto cn = BC.rep(n);
-		OGDF_ASSERT(cn->graphOf() == &BC.auxiliaryGraph());
+		OGDF_ASSERT(cn == nullptr || cn->graphOf() == &BC.auxiliaryGraph());
 		return cn;
 	};
 
-	ogdf::NodeSet<> nodes(BC.auxiliaryGraph());
+	ogdf::NodeSet nodes(BC.auxiliaryGraph());
 	ogdf::NodeArray<ogdf::node> nMap(BC.auxiliaryGraph(), nullptr);
 	ogdf::EdgeArray<ogdf::edge> eMap(BC.auxiliaryGraph(), nullptr);
 	bool changed = false;
@@ -314,15 +319,13 @@ bool Instance::reductionBCTree(int depth) {
 			LAZY_INSTANCE(I2, "I2: Computing normal ds(X_B).", , 20);
 			LAZY_INSTANCE(I3, "I3: Computing ds(X_B) containing v.",
 					I3->addToDominatingSet(nMap[h_cv]), 30);
-
 			auto smaller_DS_no_CV = [&] { return get_I1().DS.size() < get_I2().DS.size(); };
-			std::vector<int>* opt_DS_with_CV = nullptr;
+			std::unordered_set<int>* opt_DS_with_CV = nullptr;
 			auto opt_DS_has_CV = [&] {
 				if (opt_DS_with_CV) {
 					return true;
 				}
-				if (std::find(get_I2().DS.begin(), get_I2().DS.end(), node2ID[cv])
-						!= get_I2().DS.end()) {
+				if (get_I2().DS.find(node2ID[cv]) != get_I2().DS.end()) {
 					log << "RR-BC Case 2A(sc): The ds(X_B) from I2 already contains v." << std::endl;
 					opt_DS_with_CV = &get_I2().DS;
 					return true;
@@ -399,8 +402,8 @@ bool Instance::reductionBCTree(int depth) {
 				OGDF_ASSERT(replaced[node] == Replaced::AddToDS);
 				auto cv_id = node2ID[cv];
 				addToDominatingSet(cv);
-				OGDF_ASSERT(DS.back() == cv_id);
-				DS.pop_back();
+				// OGDF_ASSERT(DS.back() == cv_id);
+				// DS.erase(cv_id);
 				++r;
 			}
 		}
@@ -489,7 +492,7 @@ bool Instance::reductionStrongSubsumption() {
 		if (!is_dominated[u] && !is_subsumed[u]) {
 			outadju[u] = true;
 		}
-		ogdf::NodeSet<> couldBeStronglySubsumed(G);
+		ogdf::NodeSet couldBeStronglySubsumed(G);
 		// compute all vertices that share an in-neighbor or out-neighbor with u
 		forAllInAdj(u, [&](ogdf::adjEntry adj) {
 			forAllOutAdj(adj->twinNode(), [&](ogdf::adjEntry adj2) {
@@ -571,7 +574,7 @@ bool Instance::reductionSubsumption() {
 	int i = G.numberOfNodes();
 	ogdf::NodeArray<bool> outadju(G, false);
 	auto outAdjMask = computeOutadjMask();
-	ogdf::NodeSet<> couldBesubsumed(G);
+	ogdf::NodeSet couldBesubsumed(G);
 	for (auto it = G.nodes.begin(); it != G.nodes.end(); --i) {
 		OGDF_ASSERT(i >= 0); // protect against endless loops
 		auto u = *it;
@@ -714,6 +717,7 @@ bool Instance::reductionContraction() {
 				safeDelete(takev, it);
 				cnt_removed++;
 				is_dominated[u] = false;
+				removeHiddenIncomingEdges(u);
 			}
 
 			forAllOutAdj(u, [&](ogdf::adjEntry adj) {
@@ -726,4 +730,134 @@ bool Instance::reductionContraction() {
 		log << "Contraction removed " << cnt_removed << " vertices" << std::endl;
 	}
 	return cnt_removed > 0;
+}
+
+bool Instance::reductionSpecial1() {
+	// generalisation of RR 6 of https://www.sciencedirect.com/science/article/pii/S0166218X11002393
+	size_t applications = 0;
+	ogdf::NodeArray<u_int32_t> nodeinBipGraph(G, 0);
+	for (auto it = G.nodes.begin(); it != G.nodes.end();) {
+		auto Sv = *it;
+		it++;
+		std::vector<ogdf::node> freq2neighs;
+		forAllCanDominate(Sv, [&](ogdf::node adj) {
+			if (countCanBeDominatedBy(adj) == 2) {
+				freq2neighs.push_back(adj);
+			}
+			return true;
+		});
+		if (freq2neighs.size() > 1) {
+			u_int32_t max = 0;
+			u_int32_t indexf = 0;
+			std::vector<std::pair<u_int32_t, u_int32_t>> edges;
+			for (auto n : freq2neighs) {
+				indexf++;
+				forAllCanBeDominatedBy(n, [&](ogdf::node Siv) {
+					if (Siv != Sv) {
+						forAllCanDominate(Siv, [&](ogdf::node adj) {
+							if (adj != n) {
+								if (nodeinBipGraph[adj] == 0) {
+									nodeinBipGraph[adj] = ++max;
+								}
+								edges.push_back({indexf, nodeinBipGraph[adj]});
+							}
+							return true;
+						});
+					}
+					return true;
+				});
+			}
+			for (auto n : freq2neighs) {
+				forAllCanBeDominatedBy(n, [&](ogdf::node Siv) {
+					if (Siv != Sv) {
+						forAllCanDominate(Siv, [&](ogdf::node adj) {
+							nodeinBipGraph[adj] = 0;
+							return true;
+						});
+					}
+					return true;
+				});
+			}
+			BipartiteGraph B(freq2neighs.size(), max);
+			for (auto& e : edges) {
+				B.add_edge(e.first, e.second);
+			}
+			auto matching_size = B.hopcroftKarp_algorithm();
+			if (matching_size < freq2neighs.size()) {
+				applications++;
+				addToDominatingSet(Sv);
+			} else {
+				OGDF_ASSERT(matching_size == freq2neighs.size());
+			}
+		}
+	}
+	if (applications > 0) {
+		log << "Special reduction rule 1 can dominate " << applications << " vertices" << std::endl;
+	}
+
+	return applications > 0;
+}
+
+bool Instance::reductionSpecial2(int d) {
+	for (auto it = G.nodes.begin(); it != G.nodes.end();) {
+		auto Rv = *it;
+		it++;
+		if (countCanDominate(Rv) == 2) {
+			std::vector<ogdf::node> freq2neighs;
+			forAllCanDominate(Rv, [&](ogdf::node adj) {
+				if (countCanBeDominatedBy(adj) == 2) {
+					freq2neighs.push_back(adj);
+				}
+				return true;
+			});
+			if (freq2neighs.size() == 2) {
+				std::unordered_set<ogdf::node> Q;
+				std::vector<ogdf::node> Rivs;
+				for (auto n : freq2neighs) {
+					forAllCanBeDominatedBy(n, [&](ogdf::node Riv) {
+						if (Riv != Rv) {
+							Rivs.push_back(Riv);
+							forAllCanDominate(Riv, [&](ogdf::node adj) {
+								if (adj != n) {
+									Q.insert(adj);
+								}
+								return true;
+							});
+						}
+						return true;
+					});
+				}
+				log << "** Applying special reduction rule 2" << std::endl;
+				markSubsumed(Rv);
+				markSubsumed(Rivs[0]);
+				markSubsumed(Rivs[1]);
+				markDominated(freq2neighs[0]);
+				markDominated(freq2neighs[1]);
+				OGDF_ASSERT(Rivs.size() == 2);
+				auto Rvid = node2ID[Rv];
+				auto Rv1id = node2ID[Rivs[0]];
+				auto Rv2id = node2ID[Rivs[1]];
+
+				auto qnode = G.newNode();
+				node2ID[qnode] = ++maxid;
+				auto qid = maxid;
+				markDominated(qnode);
+				for (auto q : Q) {
+					auto e = G.newEdge(qnode, ogdf::Direction::before, q, ogdf::Direction::after);
+					reverse_edge[e] = nullptr;
+				}
+				Q.clear();
+				reduceAndSolve(*this, d);
+				if (DS.find(qid) != DS.end()) {
+					DS.insert(Rv1id);
+					DS.insert(Rv2id);
+					DS.erase(qid);
+				} else {
+					DS.insert(Rvid);
+				}
+				return true;
+			}
+		}
+	}
+	return false;
 }

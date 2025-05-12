@@ -1,5 +1,7 @@
 #pragma once
 
+#include <unordered_set>
+
 #include "ogdf_util.hpp"
 
 struct Instance {
@@ -15,24 +17,34 @@ public:
 	ogdf::Graph G;
 	// std::vector<ogdf::node> ID2node;
 	ogdf::NodeArray<int> node2ID;
-	std::vector<int> DS;
+	std::unordered_set<int> DS;
 	ogdf::NodeArray<bool> is_dominated;
 	ogdf::NodeArray<bool> is_subsumed;
+	ogdf::NodeArray<bool> is_hidden_loop;
 	ogdf::EdgeArray<ogdf::edge> reverse_edge;
+	ogdf::Graph::DynamicHiddenEdgeSet hidden_edges;
 	std::hash<ogdf::node> nodehash;
+	size_t maxid;
 
 	Instance()
-		: node2ID(G, -1), is_dominated(G, false), is_subsumed(G, false), reverse_edge(G, nullptr) { }
+		: node2ID(G, -1)
+		, is_dominated(G, false)
+		, is_hidden_loop(G, false)
+		, is_subsumed(G, false)
+		, reverse_edge(G, nullptr)
+		, hidden_edges(G) { }
 
 	OGDF_NO_COPY(Instance)
 	OGDF_NO_MOVE(Instance)
 
 	void clear() {
+		hidden_edges.restore();
 		G.clear();
 		// DS.clear(); Do not clear DS! This value is still used after computing connected components
 		node2ID.init(G, -1);
 		is_dominated.init(G, false);
 		is_subsumed.init(G, false);
+		is_hidden_loop.init(G, false);
 		reverse_edge.init(G, nullptr);
 	}
 
@@ -62,9 +74,11 @@ public:
 		for (auto n : nodes) {
 			auto tn = nMap[n];
 			auto on = originalN(n);
+			// other.hidden_edges.adjEntries(n) TODO
 			node2ID[tn] = other.node2ID[on];
 			is_dominated[tn] = other.is_dominated[on];
 			is_subsumed[tn] = other.is_subsumed[on];
+			is_hidden_loop[tn] = other.is_hidden_loop[on];
 
 			// embedding breaks when inserting by edge list, so fix it
 			size_t o = 0, i = 0;
@@ -80,6 +94,21 @@ public:
 					}
 				} else {
 					++i;
+				}
+			}
+
+			for (auto adj : other.hidden_edges.adjEntries(on)) {
+				if (!adj->isSource()) {
+					continue;
+				}
+				auto ce = copyE(adj->theEdge());
+				if (ce == nullptr) {
+					continue;
+				}
+				auto src = nMap[ce->source()];
+				auto tgt = nMap[ce->target()];
+				if (src != nullptr && tgt != nullptr) {
+					hidden_edges.hide(G.newEdge(src, tgt));
 				}
 			}
 
@@ -112,6 +141,7 @@ public:
 				reverse_edge[eMap[e]] = nullptr;
 			}
 		}
+		this->maxid = other.maxid;
 	}
 
 	void read(std::istream& is) {
@@ -167,11 +197,11 @@ public:
 			l << " " << *it;
 		}
 		l << std::endl;
-		DS.insert(DS.end(), begin, end);
+		std::copy(begin, end, std::inserter(DS, DS.end()));
 		log << "Updated DS" << (comment.empty() ? "" : " with ") << comment << ": " << before << "+"
 			<< (DS.size() - before) << "=" << DS.size() << std::endl;
 #else
-		DS.insert(DS.end(), begin, end);
+		std::copy(begin, end, std::inserter(DS, DS.end()));
 #endif
 	}
 
@@ -179,10 +209,15 @@ public:
 	void addToDominatingSet(ogdf::node v, ogdf::Graph::node_iterator& it) {
 		OGDF_ASSERT(!is_subsumed[v]);
 		logd << "\tadd to DS " << node2ID[v] << std::endl;
-		DS.push_back(node2ID[v]);
+		DS.insert(node2ID[v]);
 		forAllOutAdj(v, [&](ogdf::adjEntry adj) {
 			markDominated(adj->twinNode());
 			return true;
+		});
+		ogdf::safeForEach(hidden_edges.adjEntries(v), [&](ogdf::adjEntry adj) {
+			if (adj->isSource()) { // now that the successors are really dominated, they cannot have hidden incoming edges anymore!
+				markDominated(adj->twinNode());
+			}
 		});
 		{
 			auto gll = logger.globalLogLevel();
@@ -192,19 +227,68 @@ public:
 		}
 	}
 
-	void markDominated(ogdf::node v) {
+	void markDominated(ogdf::node v, bool byreduction = false) {
+		if (!is_dominated[v] && !is_subsumed[v] && byreduction) {
+			is_hidden_loop[v] = true;
+		} else {
+			is_hidden_loop[v] = false;
+		}
 		is_dominated[v] = true;
 		forAllInAdj(v, [&](ogdf::adjEntry adj) {
-			safeDelete(adj->theEdge());
+			ogdf::edge e = adj->theEdge();
+			ogdf::edge r = reverse_edge[e];
+			if (r != nullptr) {
+				OGDF_ASSERT(reverse_edge[r] == e);
+				reverse_edge[r] = nullptr;
+			}
+			if (byreduction) {
+				hidden_edges.hide(e);
+			} else {
+				G.delEdge(e);
+			}
 			return true;
 		});
+		if (!byreduction) {
+			// v is really dominated, so we need to remove incoming hidden edges
+			removeHiddenIncomingEdges(v);
+		}
 	}
 
 	void markSubsumed(ogdf::node v) {
+		is_hidden_loop[v] = false;
 		is_subsumed[v] = true;
 		forAllOutAdj(v, [&](ogdf::adjEntry adj) {
 			safeDelete(adj->theEdge());
 			return true;
+		});
+		removeHiddenOutgoingEdges(v);
+	}
+
+	void removeHiddenEdges(ogdf::node n) {
+		is_hidden_loop[n] = false;
+		ogdf::safeForEach(hidden_edges.adjEntries(n), [&](ogdf::adjEntry adj) {
+			hidden_edges.restore(adj->theEdge());
+			G.delEdge(adj->theEdge());
+		});
+	}
+
+	void removeHiddenIncomingEdges(ogdf::node n) {
+		is_hidden_loop[n] = false;
+		ogdf::safeForEach(hidden_edges.adjEntries(n), [&](ogdf::adjEntry adj) {
+			if (!adj->isSource()) {
+				hidden_edges.restore(adj->theEdge());
+				G.delEdge(adj->theEdge());
+			}
+		});
+	}
+
+	void removeHiddenOutgoingEdges(ogdf::node n) {
+		is_hidden_loop[n] = false;
+		ogdf::safeForEach(hidden_edges.adjEntries(n), [&](ogdf::adjEntry adj) {
+			if (adj->isSource()) {
+				hidden_edges.restore(adj->theEdge());
+				G.delEdge(adj->theEdge());
+			}
 		});
 	}
 
@@ -255,6 +339,10 @@ public:
 	std::list<Instance> decomposeConnectedComponents();
 
 	bool reductionBCTree(int depth = 0);
+
+	bool reductionSpecial1();
+
+	bool reductionSpecial2(int d);
 
 	std::pair<size_t, size_t> dominationStats() {
 		size_t can = 0, needs = 0;

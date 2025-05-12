@@ -2,8 +2,13 @@
     "cmake.debugConfig": {
         "args": [
             "<",
-            "../../../instances/official/ds/exact/exact_027.gr"
+            "../../../instances/official/ds/exact/exact_017.gr"
         ]
+    },
+    "cmake.buildDirectory": "${workspaceFolder}/build-debug",
+    "cmake.configureSettings": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "PACE_USE_ASAN": "ON"
     },
     "files.associations": {
         "*.ipp": "cpp",
@@ -103,5 +108,9 @@
         "hash_set": "cpp",
         "*.inc": "cpp"
     },
-    "C_Cpp.errorSquiggles": "enabled"
+    "C_Cpp.errorSquiggles": "enabled",
+    "files.exclude": {
+        "ext/or-tools": true,
+        "ext/ogdf/src": true
+    }
 }
