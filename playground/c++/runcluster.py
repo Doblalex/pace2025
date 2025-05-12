@@ -1,9 +1,10 @@
 import os
 import sys
 
+DEBUG = false
 FOLDER = "../../instances/official/ds/exact"
-BINARY = "./build/ogdf_dsexact"
-OUTDIR = "results"
+BINARY = "./build-debug/ogdf_dsexact" if DEBUG else "./build-release/ogdf_dsexact"
+OUTDIR = "resultsdebug" if DEBUG else "results"
 
 cwd = os.getcwd()
 for file in os.listdir(FOLDER):
