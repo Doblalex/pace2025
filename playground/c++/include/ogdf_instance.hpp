@@ -20,6 +20,7 @@ public:
 	std::unordered_set<int> DS;
 	ogdf::NodeArray<bool> is_dominated;
 	ogdf::NodeArray<bool> is_subsumed;
+	ogdf::NodeArray<bool> is_hidden_loop;
 	ogdf::EdgeArray<ogdf::edge> reverse_edge;
 	ogdf::Graph::DynamicHiddenEdgeSet hidden_edges;
 	std::hash<ogdf::node> nodehash;
@@ -28,6 +29,7 @@ public:
 	Instance()
 		: node2ID(G, -1)
 		, is_dominated(G, false)
+		, is_hidden_loop(G, false)
 		, is_subsumed(G, false)
 		, reverse_edge(G, nullptr)
 		, hidden_edges(G) { }
@@ -42,6 +44,7 @@ public:
 		node2ID.init(G, -1);
 		is_dominated.init(G, false);
 		is_subsumed.init(G, false);
+		is_hidden_loop.init(G, false);
 		reverse_edge.init(G, nullptr);
 	}
 
@@ -75,6 +78,7 @@ public:
 			node2ID[tn] = other.node2ID[on];
 			is_dominated[tn] = other.is_dominated[on];
 			is_subsumed[tn] = other.is_subsumed[on];
+			is_hidden_loop[tn] = other.is_hidden_loop[on];
 
 			// embedding breaks when inserting by edge list, so fix it
 			size_t o = 0, i = 0;
@@ -224,6 +228,11 @@ public:
 	}
 
 	void markDominated(ogdf::node v, bool byreduction = false) {
+		if (!is_dominated[v] && !is_subsumed[v] && byreduction) {
+			is_hidden_loop[v] = true;
+		} else {
+			is_hidden_loop[v] = false;
+		}
 		is_dominated[v] = true;
 		forAllInAdj(v, [&](ogdf::adjEntry adj) {
 			ogdf::edge e = adj->theEdge();
@@ -246,6 +255,7 @@ public:
 	}
 
 	void markSubsumed(ogdf::node v) {
+		is_hidden_loop[v] = false;
 		is_subsumed[v] = true;
 		forAllOutAdj(v, [&](ogdf::adjEntry adj) {
 			safeDelete(adj->theEdge());
@@ -255,6 +265,7 @@ public:
 	}
 
 	void removeHiddenEdges(ogdf::node n) {
+		is_hidden_loop[n] = false;
 		ogdf::safeForEach(hidden_edges.adjEntries(n), [&](ogdf::adjEntry adj) {
 			hidden_edges.restore(adj->theEdge());
 			G.delEdge(adj->theEdge());
@@ -262,6 +273,7 @@ public:
 	}
 
 	void removeHiddenIncomingEdges(ogdf::node n) {
+		is_hidden_loop[n] = false;
 		ogdf::safeForEach(hidden_edges.adjEntries(n), [&](ogdf::adjEntry adj) {
 			if (!adj->isSource()) {
 				hidden_edges.restore(adj->theEdge());
@@ -271,6 +283,7 @@ public:
 	}
 
 	void removeHiddenOutgoingEdges(ogdf::node n) {
+		is_hidden_loop[n] = false;
 		ogdf::safeForEach(hidden_edges.adjEntries(n), [&](ogdf::adjEntry adj) {
 			if (adj->isSource()) {
 				hidden_edges.restore(adj->theEdge());

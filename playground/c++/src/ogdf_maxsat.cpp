@@ -197,7 +197,7 @@ void solveEvalMaxSat(Instance& I) {
 		hclauses.emplace_back();
 		hclauses.back().reserve(v->indeg() + 1);
 #endif
-		if (!I.is_subsumed[v]) {
+		if ((!I.is_subsumed[v] && !I.is_dominated[v]) || I.is_hidden_loop[v]) {
 			clause.push_back(varmap[v]);
 #ifdef EMS_CACHE
 			hclauses.back().push_back(I.node2ID[v]);

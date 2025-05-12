@@ -79,7 +79,6 @@ target_link_libraries(ogdf_hsexact ${localLibs} z)
 target_link_libraries(dsexact ${localLibs} z)
 
 # HTD ----------------------------------------------------------------------
-
 include_directories(${PROJECT_SOURCE_DIR}/ext/htd/include)
 add_subdirectory(${PROJECT_SOURCE_DIR}/ext/htd)
 
