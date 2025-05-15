@@ -7,7 +7,7 @@ mkdir -p build-debug build-release
 cmake -S . -B build-release \
     -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=OFF \
     -DCMAKE_INTERPROCEDURAL_OPTIMIZATION=TRUE -DCMAKE_POLICY_DEFAULT_CMP0069=NEW \
-    -DOGDF_MEMORY_MANAGER=POOL_NTS -DOGDF_USE_ASSERT_EXCEPTIONS=OFF
+    -DOGDF_MEMORY_MANAGER=POOL_NTS -DOGDF_USE_ASSERT_EXCEPTIONS=OFF # -DOGDF_ARCH=haswell
 cmake --build build-release -j $(nproc)
 
 cmake -S . -B build-debug \

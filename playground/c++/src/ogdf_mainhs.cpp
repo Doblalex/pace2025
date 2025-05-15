@@ -8,7 +8,11 @@ ogdf::node internal::idn(ogdf::node n) { return n; }
 
 ogdf::edge internal::ide(ogdf::edge n) { return n; }
 
-#define OGDF_DEBUG
+#ifdef OGDF_DEBUG
+#define solout std::cerr
+#else
+#define solout std::cout
+#endif
 
 int main(int argc, char** argv) {
 	logger.localLogLevel(ogdf::Logger::Level::Default);
@@ -26,22 +30,23 @@ int main(int argc, char** argv) {
 		e = e == nullptr ? nullptr : nMap[e];
 	}
 #else
-	I.read(std::cin);
+	I.readhs(std::cin);
 #endif
 
 	auto start = std::chrono::high_resolution_clock::now();
 	reduceAndSolve(I, 0);
 	auto end = std::chrono::high_resolution_clock::now();
 
-	std::cerr << "c HS solution size:\n" << I.DS.size() << "\nc <HS vertices>:" << std::endl;
+	solout << "c HS solution size:\n" << I.DS.size() << "\nc <HS vertices>:" << std::endl;
 	for (auto v : I.DS) {
-		std::cerr << v << "\n";
+		solout << v << "\n";
 	}
-	std::cerr << "c </HS vertices>\nc HS solution size: " << I.DS.size() << "\nc solve time: "
+	solout << "c </HS vertices>\nc HS solution size: " << I.DS.size() << "\nc solve time: "
 			  << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms"
 			  << std::endl;
 
 #ifdef OGDF_DEBUG
+	ogdf::Logger::globalLogLevel(ogdf::Logger::Level::Alarm);
 	for (auto v : I.DS) {
 		I2.addToDominatingSet(ID2node.at(v));
 	}
