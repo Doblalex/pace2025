@@ -63,7 +63,6 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 add_executable(dsexact ${SOURCES})
 add_executable(ogdf_dsexact ${OGDF_SOURCES} src/ogdf_main.cpp)
 add_executable(ogdf_validate src/ogdf_validator.cpp src/ogdf_io.cpp)
-add_executable(ogdf_hsexact ${OGDF_SOURCES} src/ogdf_mainhs.cpp)
 
 # EVALMAXSAT ---------------------------------------------------------------
 set(localLibs
@@ -83,7 +82,6 @@ include_directories(${ZLIB_INCLUDE_DIR})
 
 include_directories(${PROJECT_SOURCE_DIR}/EvalMaxSAT)
 target_link_libraries(ogdf_dsexact ${localLibs} z)
-target_link_libraries(ogdf_hsexact ${localLibs} z)
 target_link_libraries(dsexact ${localLibs} z)
 
 # HTD ----------------------------------------------------------------------
@@ -91,7 +89,6 @@ include_directories(${PROJECT_SOURCE_DIR}/ext/htd/include)
 add_subdirectory(${PROJECT_SOURCE_DIR}/ext/htd)
 
 target_link_libraries(ogdf_dsexact htd)
-target_link_libraries(ogdf_hsexact htd)
 
 # GUROBI -------------------------------------------------------------------
 if(PACE_USE_GUROBI)
@@ -131,7 +128,6 @@ if(PACE_USE_ORTOOLS)
   endif()
 
   target_link_libraries(dsexact ortools::ortools)
-  target_link_libraries(ogdf_hsexact ortools::ortools)
   target_link_libraries(ogdf_dsexact ortools::ortools)
 endif()
 
@@ -158,6 +154,5 @@ if(PACE_USE_OGDF)
   endif()
 
   target_link_libraries(ogdf_dsexact OGDF)
-  target_link_libraries(ogdf_hsexact OGDF)
   target_link_libraries(ogdf_validate OGDF)
 endif()

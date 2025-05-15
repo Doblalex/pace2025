@@ -29,7 +29,7 @@ int main(int argc, char** argv) {
 	int cnt;
 	std::istringstream iss(line);
 	iss >> cnt;
-	std::cout << "DS with " << cnt << " vertices" << std::endl;
+	std::cout << I.type << " with " << cnt << " vertices" << std::endl;
 
 	for (int i = 0; i < cnt; i++) {
 		getline(std::cin, line);
@@ -58,10 +58,10 @@ int main(int argc, char** argv) {
 	}
 
 	if (undom == 0) {
-		std::cout << "Valid DS" << std::endl;
+		std::cout << "Valid " << I.type << std::endl;
 		return 0;
 	} else {
-		std::cerr << "Invalid DS not dominating " << undom << " vertices!" << std::endl;
+		std::cerr << "Invalid " << I.type << " not dominating " << undom << " vertices!" << std::endl;
 		return 2;
 	}
 }
