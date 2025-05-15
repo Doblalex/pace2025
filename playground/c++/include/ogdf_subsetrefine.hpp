@@ -63,8 +63,8 @@ public:
 	}
 
 	bool doReduce(ogdf::node u) {
-		// bool reduce = type == RefineType::Subsume || instance.is_subsumed[u];
-		bool reduce = true;
+		bool reduce = type == RefineType::Subsume || instance.is_subsumed[u];
+		// bool reduce = true;
 		if (reduce) {
 			if (type == RefineType::Subsume) {
 				instance.markSubsumed(u);
