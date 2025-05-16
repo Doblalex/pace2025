@@ -1,4 +1,4 @@
-#include "ogdf_greedy.hpp"
+#include "ogdf_solver.hpp"
 
 void solveGreedy(Instance& I) {
 	log << "Solving Greedy with " << I.G.numberOfNodes() << " nodes" << std::endl;
