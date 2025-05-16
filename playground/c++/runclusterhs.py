@@ -2,7 +2,7 @@ import os
 import sys
 
 FOLDER = "../../instances/official/hs/exact"
-BINARY = "./build/ogdf_hsexact"
+BINARY = "./build-release/ogdf_hsexact"
 OUTDIR = "resultshs"
 
 cwd = os.getcwd()

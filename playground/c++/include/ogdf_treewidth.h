@@ -7,7 +7,6 @@
 #include <memory>
 #include <queue>
 #include <stack>
-#include <thread>
 
 #include "ogdf/basic/GraphSets.h"
 #include "ogdf_instance.hpp"

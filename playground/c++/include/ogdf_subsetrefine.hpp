@@ -69,7 +69,7 @@ public:
 			if (type == RefineType::Subsume) {
 				instance.markSubsumed(u);
 			} else {
-				instance.markDominated(u, true);
+				instance.markDominated(u, false);
 			}
 			cntreduced++;
 		}

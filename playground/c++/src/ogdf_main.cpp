@@ -8,7 +8,11 @@ ogdf::node internal::idn(ogdf::node n) { return n; }
 
 ogdf::edge internal::ide(ogdf::edge n) { return n; }
 
-#define OGDF_DEBUG
+#ifdef OGDF_DEBUG
+#	define solout std::cerr
+#else
+#	define solout std::cout
+#endif
 
 int main(int argc, char** argv) {
 	logger.localLogLevel(ogdf::Logger::Level::Default);
@@ -33,13 +37,15 @@ int main(int argc, char** argv) {
 	reduceAndSolve(I, 0);
 	auto end = std::chrono::high_resolution_clock::now();
 
-	std::cerr << "c DS solution size:\n" << I.DS.size() << "\nc <DS vertices>:" << std::endl;
+	solout << "c " << I.type << " solution size:\n"
+		   << I.DS.size() << "\nc <" << I.type << " vertices>:" << std::endl;
 	for (auto v : I.DS) {
-		std::cerr << v << "\n";
+		solout << v << "\n";
 	}
-	std::cerr << "c </DS vertices>\nc DS solution size: " << I.DS.size() << "\nc solve time: "
-			  << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms"
-			  << std::endl;
+	solout << "c </" << I.type << " vertices>\nc " << I.type << " solution size: " << I.DS.size()
+		   << "\nc solve time: "
+		   << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms"
+		   << std::endl;
 
 #ifdef OGDF_DEBUG
 	ogdf::Logger::globalLogLevel(ogdf::Logger::Level::Alarm);
@@ -61,10 +67,11 @@ int main(int argc, char** argv) {
 	}
 
 	if (undom == 0) {
-		std::cerr << "c Valid DS" << std::endl;
+		std::cerr << "c Valid " << I.type << std::endl;
 		return 0;
 	} else {
-		std::cerr << "c Invalid DS not dominating " << undom << " vertices!" << std::endl;
+		std::cerr << "c Invalid " << I.type << " not dominating " << undom << " vertices!"
+				  << std::endl;
 		return 2;
 	}
 #endif

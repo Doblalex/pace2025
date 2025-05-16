@@ -1,7 +1,7 @@
 import os
 import sys
 
-DEBUG = false
+DEBUG = True
 FOLDER = "../../instances/official/ds/exact"
 BINARY = "./build-debug/ogdf_dsexact" if DEBUG else "./build-release/ogdf_dsexact"
 OUTDIR = "resultsdebug" if DEBUG else "results"

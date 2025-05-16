@@ -131,6 +131,3 @@ inline uint64_t FNV1a_64_one(uint64_t v) {
 	FNV1a_64_update(ret, v);
 	return ret;
 }
-
-// #define EMS_CACHE
-// #define USE_ORTOOLS

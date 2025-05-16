@@ -8,10 +8,21 @@ void Instance::read(std::istream& is, std::vector<ogdf::node>& ID2node) {
 	std::istringstream iss(line);
 	iss >> s;
 	OGDF_ASSERT(s == "p");
-	iss >> s;
-	OGDF_ASSERT(s == "ds");
+	iss >> type;
 	iss >> n >> m;
+	if (type == "ds") {
+		read_DS(is, ID2node, n, m);
+	} else if (type == "hs") {
+		read_HS(is, ID2node, n, m);
+	} else {
+		std::cerr << "Unknown input type " << type << std::endl;
+		std::exit(1);
+	}
+}
 
+void Instance::read_DS(std::istream& is, std::vector<ogdf::node>& ID2node, unsigned int n,
+		unsigned int m) {
+	std::string line;
 	clear();
 	ID2node.clear();
 	ID2node.reserve(n + 1);
@@ -40,18 +51,9 @@ void Instance::read(std::istream& is, std::vector<ogdf::node>& ID2node) {
 	OGDF_ASSERT(G.numberOfEdges() == m * 2);
 }
 
-void Instance::readhs(std::istream& is, std::vector<ogdf::node>& ID2node) {
-	unsigned int n, m;
-	std::string s;
+void Instance::read_HS(std::istream& is, std::vector<ogdf::node>& ID2node, unsigned int n,
+		unsigned int m) {
 	std::string line;
-	getline(is, line);
-	std::istringstream iss(line);
-	iss >> s;
-	OGDF_ASSERT(s == "p");
-	iss >> s;
-	OGDF_ASSERT(s == "hs");
-	iss >> n >> m;
-
 	clear();
 	ID2node.clear();
 	ID2node.reserve(n + m + 1);

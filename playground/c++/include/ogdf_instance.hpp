@@ -12,6 +12,8 @@ private:
 			ogdf::NodeArray<bool>& inadjv, const ogdf::NodeArray<u_int64_t>& inadjMask);
 	ogdf::NodeArray<u_int64_t> computeOutadjMask();
 	ogdf::NodeArray<u_int64_t> computeInadjMask();
+	void read_DS(std::istream& is, std::vector<ogdf::node>& ID2node, unsigned int n, unsigned int m);
+	void read_HS(std::istream& is, std::vector<ogdf::node>& ID2node, unsigned int n, unsigned int m);
 
 public:
 	ogdf::Graph G;
@@ -25,6 +27,7 @@ public:
 	ogdf::Graph::DynamicHiddenEdgeSet hidden_edges;
 	std::hash<ogdf::node> nodehash;
 	size_t maxid;
+	std::string type;
 
 	Instance()
 		: node2ID(G, -1)
@@ -149,14 +152,7 @@ public:
 		read(is, ID2node);
 	}
 
-	void readhs(std::istream& is) {
-		std::vector<ogdf::node> ID2node;
-		readhs(is, ID2node);
-	}
-
 	void read(std::istream& is, std::vector<ogdf::node>& ID2node);
-
-	void readhs(std::istream& is, std::vector<ogdf::node>& ID2node);
 
 	void dumpBCTree();
 

@@ -12,10 +12,14 @@ set(PACE_USE_OGDF ON CACHE BOOL "use installed or subproject-built OGDF")
 set(PACE_USE_ASAN OFF CACHE BOOL "use the address sanitizer")
 set(PACE_ARCH "native" CACHE STRING "Target CPU (micro)architecture passed to the compiler via `-march`.")
 set(PACE_LOG OFF CACHE BOOL "enable logging")
+set(PACE_SAT_CACHE OFF CACHE BOOL "enable SAT solution caching")
 
 if(PACE_LOG)
   add_compile_definitions(PACE_LOG)
 endif()
+if (PACE_SAT_CACHE)
+  add_compile_definitions(SAT_CACHE)
+endif ()
 
 add_compile_options("-march=${PACE_ARCH}")
 
@@ -23,8 +27,16 @@ if(CMAKE_BUILD_TYPE STREQUAL "Release")
   message(STATUS "Building in Release mode")
   set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON CACHE BOOL "INTERPROCEDURAL_OPTIMIZATION is enabled by default for release builds")
   set(CMAKE_POLICY_DEFAULT_CMP0069 NEW CACHE STRING "INTERPROCEDURAL_OPTIMIZATION should no complain of OGDF's older CMake version")
+
+  if(NOT BUILD_SHARED_LIBS)
+    set(BUILD_SHARED_LIBS OFF CACHE BOOL "Shared Libs OFF")
+  endif()
 else()
   message(STATUS "Building in non-Release mode ${CMAKE_BUILD_TYPE}")
+
+  if(NOT BUILD_SHARED_LIBS)
+    set(BUILD_SHARED_LIBS ON CACHE BOOL "Shared Libs ON")
+  endif()
 endif()
 
 if(PACE_USE_ASAN)
@@ -55,7 +67,6 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 add_executable(dsexact ${SOURCES})
 add_executable(ogdf_dsexact ${OGDF_SOURCES} src/ogdf_main.cpp)
 add_executable(ogdf_validate src/ogdf_validator.cpp src/ogdf_io.cpp)
-add_executable(ogdf_hsexact ${OGDF_SOURCES} src/ogdf_mainhs.cpp)
 
 # EVALMAXSAT ---------------------------------------------------------------
 set(localLibs
@@ -75,7 +86,6 @@ include_directories(${ZLIB_INCLUDE_DIR})
 
 include_directories(${PROJECT_SOURCE_DIR}/EvalMaxSAT)
 target_link_libraries(ogdf_dsexact ${localLibs} z)
-target_link_libraries(ogdf_hsexact ${localLibs} z)
 target_link_libraries(dsexact ${localLibs} z)
 
 # HTD ----------------------------------------------------------------------
@@ -83,7 +93,6 @@ include_directories(${PROJECT_SOURCE_DIR}/ext/htd/include)
 add_subdirectory(${PROJECT_SOURCE_DIR}/ext/htd)
 
 target_link_libraries(ogdf_dsexact htd)
-target_link_libraries(ogdf_hsexact htd)
 
 # GUROBI -------------------------------------------------------------------
 if(PACE_USE_GUROBI)
@@ -123,7 +132,6 @@ if(PACE_USE_ORTOOLS)
   endif()
 
   target_link_libraries(dsexact ortools::ortools)
-  target_link_libraries(ogdf_hsexact ortools::ortools)
   target_link_libraries(ogdf_dsexact ortools::ortools)
 endif()
 
@@ -135,6 +143,7 @@ if(PACE_USE_OGDF)
   IF(${OGDF_FOUND})
     message(STATUS "OGDF found")
   ELSE()
+    set(OGDF_ARCH "native" CACHE STRING "OGDF_ARCH defaults to haswell")
     set(OGDF_MEMORY_MANAGER POOL_NTS CACHE STRING "OGDF_MEMORY_MANAGER defaults to POOL_NTS")
 
     if(CMAKE_BUILD_TYPE STREQUAL "Release")
@@ -149,6 +158,5 @@ if(PACE_USE_OGDF)
   endif()
 
   target_link_libraries(ogdf_dsexact OGDF)
-  target_link_libraries(ogdf_hsexact OGDF)
   target_link_libraries(ogdf_validate OGDF)
 endif()
