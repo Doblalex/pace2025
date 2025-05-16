@@ -188,9 +188,9 @@ void solveEvalMaxSat(Instance& I) {
 #endif
 	std::vector<int> clause;
 	for (auto v : I.G.nodes) {
-		// if (I.is_dominated[v]) { // might have hidden edges
-		// 	continue;
-		// }
+		if (I.is_dominated[v]) { // might have hidden edges
+			continue;
+		}
 		clause.clear();
 		// clause.reserve(v->indeg() + 1);
 #ifdef EMS_CACHE
