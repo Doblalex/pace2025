@@ -60,7 +60,7 @@
 // 	}
 // }
 
-#ifdef EMS_CACHE
+#ifdef SAT_CACHE
 uint64_t hash_clauses(const std::vector<std::vector<int>>& clauses) {
 	uint64_t hash = FNV1a_64_SEED;
 	OGDF_ASSERT(clauses.size() > 0);
@@ -182,7 +182,7 @@ void solveEvalMaxSat(Instance& I) {
 		int var = solver.newSoftVar(true, -1);
 		varmap[v] = var;
 	}
-#ifdef EMS_CACHE
+#ifdef SAT_CACHE
 	std::vector<std::vector<int>> hclauses;
 	hclauses.reserve(I.G.numberOfNodes());
 #endif
@@ -193,13 +193,13 @@ void solveEvalMaxSat(Instance& I) {
 		}
 		clause.clear();
 		// clause.reserve(v->indeg() + 1);
-#ifdef EMS_CACHE
+#ifdef SAT_CACHE
 		hclauses.emplace_back();
 		hclauses.back().reserve(v->indeg() + 1);
 #endif
 		if ((!I.is_subsumed[v] && !I.is_dominated[v]) || I.is_hidden_loop[v]) {
 			clause.push_back(varmap[v]);
-#ifdef EMS_CACHE
+#ifdef SAT_CACHE
 			hclauses.back().push_back(I.node2ID[v]);
 #endif
 		}
@@ -207,7 +207,7 @@ void solveEvalMaxSat(Instance& I) {
 			auto w = adj->twinNode();
 			if (!adj->isSource() && !I.is_subsumed[w]) {
 				clause.push_back(varmap[w]);
-#ifdef EMS_CACHE
+#ifdef SAT_CACHE
 				hclauses.back().push_back(I.node2ID[w]);
 #endif
 			}
@@ -219,11 +219,11 @@ void solveEvalMaxSat(Instance& I) {
 			continue;
 		}
 		solver.addClause(clause); //hard clause
-#ifdef EMS_CACHE
+#ifdef SAT_CACHE
 		std::sort(hclauses.back().begin(), hclauses.back().end());
 #endif
 	}
-#ifdef EMS_CACHE
+#ifdef SAT_CACHE
 	std::string filename;
 	if (try_load_solution(I, hclauses, filename)) {
 		return;
@@ -246,7 +246,7 @@ void solveEvalMaxSat(Instance& I) {
 			if (solver.getValue(varmap[v])) {
 				I.DS.insert(I.node2ID[v]);
 				l << " " << I.node2ID[v];
-#ifdef EMS_CACHE
+#ifdef SAT_CACHE
 				f << " " << I.node2ID[v];
 #endif
 			}
@@ -277,7 +277,7 @@ void solvecpsat(Instance& I) {
 		varmap[v] = var;
 		obj += var;
 	}
-#	ifdef EMS_CACHE
+#	ifdef SAT_CACHE
 	std::vector<std::vector<int>> hclauses;
 	hclauses.reserve(I.G.numberOfNodes());
 #	endif
@@ -288,13 +288,13 @@ void solvecpsat(Instance& I) {
 			continue;
 		}
 		LinearExpr expr;
-#	ifdef EMS_CACHE
+#	ifdef SAT_CACHE
 		hclauses.emplace_back();
 		hclauses.back().reserve(v->indeg() + 1);
 #	endif
 		if (!I.is_subsumed[v]) {
 			expr += varmap[v];
-#	ifdef EMS_CACHE
+#	ifdef SAT_CACHE
 			hclauses.back().push_back(I.node2ID[v]);
 #	endif
 		}
@@ -302,7 +302,7 @@ void solvecpsat(Instance& I) {
 			auto w = adj->twinNode();
 			if (!adj->isSource() && !I.is_subsumed[w]) {
 				expr += varmap[w];
-#	ifdef EMS_CACHE
+#	ifdef SAT_CACHE
 				hclauses.back().push_back(I.node2ID[w]);
 #	endif
 			}
@@ -311,11 +311,11 @@ void solvecpsat(Instance& I) {
 		forAllInAdj(v, add_neigh);
 		ogdf::safeForEach(I.hidden_edges.adjEntries(v), add_neigh);
 		solver->MakeRowConstraint(expr >= 1); //hard clause
-#	ifdef EMS_CACHE
+#	ifdef SAT_CACHE
 		std::sort(hclauses.back().begin(), hclauses.back().end());
 #	endif
 	}
-#	ifdef EMS_CACHE
+#	ifdef SAT_CACHE
 	std::string filename;
 	if (try_load_solution(I, hclauses, filename)) {
 		return;
@@ -336,7 +336,7 @@ void solvecpsat(Instance& I) {
 			if (varmap[v]->solution_value() > 0.5) {
 				I.DS.insert(I.node2ID[v]);
 				l << " " << I.node2ID[v];
-#	ifdef EMS_CACHE
+#	ifdef SAT_CACHE
 				f << " " << I.node2ID[v];
 #	endif
 			}
