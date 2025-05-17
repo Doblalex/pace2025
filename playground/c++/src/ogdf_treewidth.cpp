@@ -1,7 +1,5 @@
 #include "ogdf_treewidth.h"
 
-static int terminate_counter = 0;
-static std::mutex mtx;
 std::unique_ptr<htd::LibraryInstance> manager(htd::createManagementInstance(htd::Id::FIRST));
 
 void ReductionTreeDecomposition::computeDecomposition() {
@@ -55,33 +53,7 @@ void ReductionTreeDecomposition::computeDecomposition() {
 			fitnessFunction.clone());
 	algorithm.setIterationCount(10);
 	algorithm.setNonImprovementLimit(3);
-
-	std::thread(
-			[](int cnt) {
-				log << "Waiting for termination signal..." << std::endl;
-				std::this_thread::sleep_for(std::chrono::seconds(1));
-				mtx.lock();
-				if (terminate_counter == cnt) {
-					log << "Terminating tree decomposition computation!" << std::endl;
-					manager->terminate();
-				}
-				mtx.unlock();
-			},
-			terminate_counter)
-			.detach();
-	// auto t = std::async(
-	// 		std::launch::async,
-	// 		[](int cnt) {
-	// 			log << "Waiting for termination signal..." << std::endl;
-	// 			std::this_thread::sleep_for(std::chrono::seconds(1));
-	// 			mtx.lock();
-	// 			if (terminate_counter == cnt) {
-	// 				log << "Terminating tree decomposition computation!" << std::endl;
-	// 				manager->terminate();
-	// 			}
-	// 			mtx.unlock();
-	// 		},
-	// 		terminate_counter);
+	manager->setTimeout(std::chrono::system_clock::now() + std::chrono::seconds(1));
 
 	std::size_t optimalBagSize = (std::size_t)-1;
 	decomposition = algorithm.computeDecomposition(*graph,
@@ -108,9 +80,6 @@ void ReductionTreeDecomposition::computeDecomposition() {
 					// std::cout << "c status " << optimalBagSize << " " << msSinceEpoch << std::endl;
 				}
 			});
-	mtx.lock();
-	terminate_counter++;
-	mtx.unlock();
 
 	if (decomposition != nullptr) {
 		if (!manager->isTerminated() || algorithm.isSafelyInterruptible()) {
