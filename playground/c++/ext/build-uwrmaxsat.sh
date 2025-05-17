@@ -19,7 +19,7 @@ git clone https://github.com/arminbiere/cadical
 pushd cadical
   patch -p1 <../uwrmaxsat/cadical.patch
   ./configure --no-contracts --no-tracing
-  make cadical
+  make -j cadical
 popd
 pushd uwrmaxsat
   cp config.cadical config.mk
@@ -29,7 +29,7 @@ popd
 git clone https://github.com/Laakeri/maxpre
 pushd maxpre
   sed -i 's/-g/-D NDEBUG/' src/Makefile
-  make lib
+  make -j lib
 popd
 
 # build the SCIP solver library (if you want to use it)
@@ -40,13 +40,13 @@ pushd scipoptsuite
   mkdir build
   pushd build
     cmake -DSYM=nauty -DSHARED=off -DNO_EXTERNAL_CODE=on -DSOPLEX=on -DTPI=tny ..
-    cmake --build . --config Release --target libscip libsoplex-pic
+    cmake --build . --config Release -j 30 --target libscip libsoplex-pic
   popd
 popd
 
 # build the UWrMaxSat solver (release version, statically linked):
 pushd uwrmaxsat
-  grep -rl scipoptsuite-9.2.1 . | xargs -r -l1 -- sed -i 's/scipoptsuite-9.2.1/scipoptsuite/' {} ;
+  grep -rl scipoptsuite-9.2.1 . | xargs -r -l1 -- sed -i 's/scipoptsuite-9.2.1/scipoptsuite/'
   make clean
-  make r
+  make -j r
 popd
