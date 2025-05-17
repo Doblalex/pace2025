@@ -188,9 +188,9 @@ void solveEvalMaxSat(Instance& I) {
 #endif
 	std::vector<int> clause;
 	for (auto v : I.G.nodes) {
-		// if (I.is_dominated[v]) { // might have hidden edges
-		// 	continue;
-		// }
+		if (I.is_dominated[v]) { // might have hidden edges
+			continue;
+		}
 		clause.clear();
 		// clause.reserve(v->indeg() + 1);
 #ifdef EMS_CACHE
@@ -233,6 +233,7 @@ void solveEvalMaxSat(Instance& I) {
 
 	solver.setTargetComputationTime(
 			std::min((double)(10 * 60), (double)I.G.numberOfNodes() / (double)10 + 1));
+	// solver.cost = 800;
 	std::cout.setstate(std::ios::failbit); // https://stackoverflow.com/a/8246430
 	bool solved = solver.solve();
 	std::cout.clear();
