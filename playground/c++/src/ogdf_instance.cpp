@@ -834,6 +834,10 @@ bool Instance::reductionSpecial2(int d) {
 						return true;
 					});
 				}
+
+				if (Rivs[0] == Rivs[1] || Rv == Rivs[0] || Rv == Rivs[1]) {
+					continue; // This can happen! But we cannot reduce here
+				}
 				markSubsumed(Rv);
 				markSubsumed(Rivs[0]);
 				markSubsumed(Rivs[1]);
@@ -856,7 +860,7 @@ bool Instance::reductionSpecial2(int d) {
 				Rvids.push(Rvid);
 				Rv1ids.push(Rv1id);
 				Rv2ids.push(Rv2id);
-				break; // reduction rule fails when applied multiple times (TODO: check this)
+				// break; // reduction rule fails when applied multiple times (TODO: check this)
 			}
 		}
 	}
