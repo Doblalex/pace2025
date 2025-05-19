@@ -8,8 +8,6 @@
 
 // from https://rosettacode.org/wiki/Hopcroft-Karp_Algorithm
 
-using namespace std;
-
 /**
  * Representation of a bipartite graph.
  * Vertices in the left partition, U, are numbered from 1 to m,
@@ -142,16 +140,16 @@ struct Edge {
 
 struct Blossom {
 	int n;
-	const vector<vector<int>>& adj;
-	vector<int> match, p, base;
-	vector<bool> used, blossom;
-	queue<int> q;
+	const std::vector<std::vector<int>>& adj;
+	std::vector<int> match, p, base;
+	std::vector<bool> used, blossom;
+	std::queue<int> q;
 
-	Blossom(const vector<vector<int>>& _adj)
+	Blossom(const std::vector<std::vector<int>>& _adj)
 		: n((int)_adj.size()), adj(_adj), match(n, -1), p(n), base(n), used(n), blossom(n) { }
 
 	int lca(int a, int b) {
-		vector<bool> used_path(n, false);
+		std::vector<bool> used_path(n, false);
 		while (true) {
 			a = base[a];
 			used_path[a] = true;
@@ -238,7 +236,7 @@ struct Blossom {
 	}
 
 	// Returns {match, size_of_matching}
-	pair<vector<int>, int> solve() {
+	std::pair<std::vector<int>, int> solve() {
 		int res = 0;
 		for (int v = 0; v < n; ++v) {
 			if (match[v] < 0 && findPath(v)) {
