@@ -62,15 +62,20 @@ void solveEvalMaxSat(Instance& I) {
 	}
 	std::ofstream f(filename);
 #endif
-
-	solver.setTargetComputationTime(20 * 60);
-	solver.setBoundRefTime(0.1, 10);
-	solver.setCoef(1, 0.1);
+	// set parameters as default divided by divide_by, otherwise each core finding takes too long
+	double divide_by = 5;
+	solver.setTargetComputationTime(25 * 60);
+	solver.setBoundRefTime(5 / divide_by, (5 * 60) / divide_by);
+	solver.setCoef(10 / divide_by, 1.66 / divide_by);
 #ifndef PACE_LOG
 	std::cout.setstate(std::ios::failbit); // https://stackoverflow.com/a/8246430
 #endif
-	// solver.cost = 2800;
-	// solver.cost = 800;
+	if (I.G.numberOfNodes() > 30000) { // only do exact for small instanes
+		solver.adapt_am1_FastHeuristicV7();
+	} else {
+		solver.adapt_am1_exact();
+		solver.adapt_am1_FastHeuristicV7();
+	}
 	bool solved = solver.solve();
 #ifndef PACE_LOG
 	std::cout.clear();

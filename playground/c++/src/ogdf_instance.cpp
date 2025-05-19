@@ -1,5 +1,7 @@
 #include "ogdf_instance.hpp"
 
+#include <stack>
+
 #include "matching.hpp"
 #include "ogdf/basic/GraphAttributes.h"
 #include "ogdf/basic/GraphSets.h"
@@ -799,6 +801,11 @@ bool Instance::reductionSpecial1() {
 }
 
 bool Instance::reductionSpecial2(int d) {
+	std::stack<size_t> qids;
+	std::stack<size_t> Rvids;
+	std::stack<size_t> Rv1ids;
+	std::stack<size_t> Rv2ids;
+
 	for (auto it = G.nodes.begin(); it != G.nodes.end();) {
 		auto Rv = *it;
 		it++;
@@ -827,7 +834,6 @@ bool Instance::reductionSpecial2(int d) {
 						return true;
 					});
 				}
-				log << "** Applying special reduction rule 2" << std::endl;
 				markSubsumed(Rv);
 				markSubsumed(Rivs[0]);
 				markSubsumed(Rivs[1]);
@@ -846,18 +852,38 @@ bool Instance::reductionSpecial2(int d) {
 					auto e = G.newEdge(qnode, ogdf::Direction::before, q, ogdf::Direction::after);
 					reverse_edge[e] = nullptr;
 				}
-				Q.clear();
-				reduceAndSolve(*this, d);
-				if (DS.find(qid) != DS.end()) {
-					DS.insert(Rv1id);
-					DS.insert(Rv2id);
-					DS.erase(qid);
-				} else {
-					DS.insert(Rvid);
-				}
-				return true;
+				qids.push(qid);
+				Rvids.push(Rvid);
+				Rv1ids.push(Rv1id);
+				Rv2ids.push(Rv2id);
 			}
 		}
+	}
+
+	if (qids.size() > 0) {
+		log << "Special reduction rule 2 was applied " << qids.size() << " times, now solving "
+			<< std::endl;
+		reduceAndSolve(*this, d);
+
+		while (qids.size() > 0) {
+			auto qid = qids.top();
+			qids.pop();
+			auto Rvid = Rvids.top();
+			Rvids.pop();
+			auto Rv1id = Rv1ids.top();
+			Rv1ids.pop();
+			auto Rv2id = Rv2ids.top();
+			Rv2ids.pop();
+
+			if (DS.find(qid) != DS.end()) {
+				DS.insert(Rv1id);
+				DS.insert(Rv2id);
+				DS.erase(qid);
+			} else {
+				DS.insert(Rvid);
+			}
+		}
+		return true;
 	}
 	return false;
 }
