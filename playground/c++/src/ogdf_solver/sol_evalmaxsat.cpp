@@ -70,7 +70,7 @@ void solveEvalMaxSat(Instance& I) {
 #ifndef PACE_LOG
 	std::cout.setstate(std::ios::failbit); // https://stackoverflow.com/a/8246430
 #endif
-	if (I.G.numberOfNodes() > 30000) { // only do exact for small instanes
+	if (I.G.numberOfNodes() > 20000) { // only do exact for small instanes
 		solver.adapt_am1_FastHeuristicV7();
 	} else {
 		solver.adapt_am1_exact();
