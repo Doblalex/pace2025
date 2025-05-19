@@ -2,13 +2,14 @@
     "cmake.debugConfig": {
         "args": [
             "<",
-            "../../../instances/official/ds/exact/exact_017.gr"
+            "../../../instances/official/ds/exact/exact_072.gr"
         ]
     },
     "cmake.buildDirectory": "${workspaceFolder}/build-debug",
     "cmake.configureSettings": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "PACE_USE_ASAN": "ON"
+        "PACE_USE_ASAN": "OFF",
+        "PACE_USE_EVALMAXSAT": "ON"
     },
     "files.associations": {
         "*.ipp": "cpp",
@@ -112,5 +113,6 @@
     "files.exclude": {
         "ext/or-tools": true,
         "ext/ogdf/src": true
-    }
+    },
+    "C_Cpp.default.compileCommands": "${workspaceFolder}/build-debug/compile_commands.json",
 }

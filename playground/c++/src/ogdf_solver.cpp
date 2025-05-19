@@ -1,7 +1,5 @@
 #include "ogdf_solver.hpp"
 
-#include "ogdf_greedy.hpp"
-#include "ogdf_maxsat.hpp"
 #include "ogdf_treewidth.h"
 
 void reduceAndSolve(Instance& I, int d) {
@@ -83,9 +81,11 @@ void reduceAndSolve(Instance& I, int d) {
 
 #ifdef USE_ORTOOLS
 	solvecpsat(I);
-// #elif USE_GUROBI
-// 	solveGurobiExactGurobi(I);
-#else
+#elif USE_GUROBI
+	solveGurobiExactGurobi(I);
+#elif USE_UWRMAXSAT
+	solveIPAMIR(I);
+#elif USE_EVALMAXSAT
 	int anssat = I.DS.size();
 	solveEvalMaxSat(I);
 	anssat = I.DS.size() - anssat;
@@ -93,5 +93,7 @@ void reduceAndSolve(Instance& I, int d) {
 		log << anssat << " vs. " << ansdp << std::endl;
 		OGDF_ASSERT(anssat == ansdp);
 	}
+#else
+#	error "No Solver configured!"
 #endif
 }
