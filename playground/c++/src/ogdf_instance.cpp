@@ -856,6 +856,7 @@ bool Instance::reductionSpecial2(int d) {
 				Rvids.push(Rvid);
 				Rv1ids.push(Rv1id);
 				Rv2ids.push(Rv2id);
+				break; // reduction rule fails when applied multiple times (TODO: check this)
 			}
 		}
 	}

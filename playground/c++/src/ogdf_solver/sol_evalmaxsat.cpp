@@ -143,7 +143,7 @@ void solveEvalMaxSat(Instance& I) {
 	}
 	// set parameters as default divided by divide_by, otherwise each core finding takes too long
 	double divide_by =
-			2; // as evalmaxsat is made for 1 hour, this seems reasonable as we have 30 minutes.
+			1; // as evalmaxsat is made for 1 hour, this seems reasonable as we have 30 minutes.
 	solver->setTargetComputationTime(30 * 60); // this seems to work over multiple solvers
 	solver->setBoundRefTime(5 / divide_by, (5 * 60) / divide_by);
 	solver->setCoef(10, 1.66);
