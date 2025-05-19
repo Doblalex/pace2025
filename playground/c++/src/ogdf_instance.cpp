@@ -1,6 +1,6 @@
 #include "ogdf_instance.hpp"
 
-#include "hopcroftcarp.hpp"
+#include "matching.hpp"
 #include "ogdf/basic/GraphAttributes.h"
 #include "ogdf/basic/GraphSets.h"
 #include "ogdf/basic/simple_graph_alg.h"

@@ -1,4 +1,5 @@
 #include "ogdf_solver.hpp"
+
 #include "ogdf_treewidth.h"
 
 void reduceAndSolve(Instance& I, int d) {
@@ -93,6 +94,6 @@ void reduceAndSolve(Instance& I, int d) {
 		OGDF_ASSERT(anssat == ansdp);
 	}
 #else
-#error "No Solver configured!"
+#	error "No Solver configured!"
 #endif
 }

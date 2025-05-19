@@ -1,5 +1,5 @@
 #include "EvalMaxSAT.h"
-#include "ogdf_maxsat.hpp"
+#include "ogdf_solver.hpp"
 #include "ogdf_util.hpp"
 
 void solveEvalMaxSat(Instance& I) {
@@ -63,11 +63,18 @@ void solveEvalMaxSat(Instance& I) {
 	std::ofstream f(filename);
 #endif
 
-	solver.setTargetComputationTime(
-			std::min((double)(10 * 60), (double)I.G.numberOfNodes() / (double)10 + 1));
+	solver.setTargetComputationTime(20 * 60);
+	solver.setBoundRefTime(0.1, 10);
+	solver.setCoef(1, 0.1);
+#ifndef PACE_LOG
 	std::cout.setstate(std::ios::failbit); // https://stackoverflow.com/a/8246430
+#endif
+	// solver.cost = 2800;
+	// solver.cost = 800;
 	bool solved = solver.solve();
+#ifndef PACE_LOG
 	std::cout.clear();
+#endif
 	if (!solved) {
 		throw std::runtime_error("EvalMaxSAT didn't find optimal result!");
 	}

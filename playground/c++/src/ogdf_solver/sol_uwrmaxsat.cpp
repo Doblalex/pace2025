@@ -1,6 +1,5 @@
 #include "ogdf_solver.hpp"
 #include "ogdf_util.hpp"
-
 #include <uwrmaxsat/ipamir.h>
 
 void solveIPAMIR(Instance& I) {
