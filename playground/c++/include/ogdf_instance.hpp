@@ -340,6 +340,27 @@ public:
 
 	bool reductionSpecial2(int d);
 
+	bool reductionVCLP();
+
+	bool isVCInstance() {
+		for (auto node : G.nodes) {
+			if (countCanBeDominatedBy(node) != 2) {
+				return false;
+			}
+		}
+		return true;
+	}
+
+	int numNotSubsumed() {
+		int cnt = 0;
+		for (ogdf::node n : G.nodes) {
+			if (!is_subsumed[n]) {
+				++cnt;
+			}
+		}
+		return cnt;
+	}
+
 	std::pair<size_t, size_t> dominationStats() {
 		size_t can = 0, needs = 0;
 		for (ogdf::node n : G.nodes) {

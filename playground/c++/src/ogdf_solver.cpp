@@ -1,5 +1,6 @@
 #include "ogdf_solver.hpp"
 
+#include "ogdf_cliquesolver.h"
 #include "ogdf_treewidth.h"
 
 void reduceAndSolve(Instance& I, int d) {
@@ -46,6 +47,8 @@ void reduceAndSolve(Instance& I, int d) {
 		} else if (I.reductionSpecial2(d)) {
 			// instance is solved here
 			return;
+			// } else if (I.isVCInstance() && I.reductionVCLP()) { // THIS does not work properly yet!! And it also does not reduce somehow
+			// 	changed = true;
 		} else if (I.reductionBCTree(d)) {
 			changed = true;
 		}
@@ -75,6 +78,14 @@ void reduceAndSolve(Instance& I, int d) {
 		if (rtd.treewidth <= 13) {
 			log << "Solving with DP" << std::endl;
 			ansdp = rtd.solveDPExact();
+			return;
+		}
+	}
+
+	if (I.isVCInstance() && I.numNotSubsumed() < 500) {
+		log << "Solving with clique solver for 300 seconds" << std::endl;
+		if (solveMISInstanceWithCliqueSolver(I, 100000000, true, 300)) {
+			log << "Clique solver found a solution!" << std::endl;
 			return;
 		}
 	}

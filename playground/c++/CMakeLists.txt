@@ -24,6 +24,7 @@ add_compile_options("-march=${PACE_ARCH}")
 
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
     message(STATUS "Building in Release mode")
+
     set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON CACHE BOOL "INTERPROCEDURAL_OPTIMIZATION is enabled by default for release builds")
     set(CMAKE_POLICY_DEFAULT_CMP0069 NEW CACHE STRING "INTERPROCEDURAL_OPTIMIZATION should no complain of OGDF's older CMake version")
 
@@ -51,6 +52,7 @@ add_executable(ogdf_dsexact
     src/ogdf_solver.cpp
     src/ogdf_subsetrefine.cpp
     src/ogdf_treewidth.cpp
+    src/ogdf_vcreductions.cpp
     src/ogdf_solver/sol_greedy.cpp)
 add_executable(ogdf_validate src/ogdf_validator.cpp src/ogdf_io.cpp)
 
