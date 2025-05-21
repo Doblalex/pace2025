@@ -1648,7 +1648,7 @@ static void init_for_search() {
 }
 
 static bool search_maxclique(int cutoff, int print_info, int limit = 1000000000,
-		bool docheck = false) {
+		bool docheck = false, long sec_limit = 3600) {
 	int node;
 	init_for_search();
 	BRANCHING_COUNT = 0;
@@ -1657,13 +1657,23 @@ static bool search_maxclique(int cutoff, int print_info, int limit = 1000000000,
 		printf("c  -----------------------------------------------------------------\n");
 		printf("c  Size| Index|NB_Vertex  NB_IncUB    NB_Iset  NB_MaxSat|  NB_Branch\n");
 	}
-	/*struct rusage starttime, endtime;*/
-	/*getrusage(RUSAGE_SELF, &starttime);*/
+	struct rusage starttime, endtime;
+	getrusage(RUSAGE_SELF, &starttime);
 	while (CURSOR > 0) {
 		node = Candidate_Stack[--CURSOR];
-		/*getrusage(RUSAGE_SELF, &endtime);*/
-		/*long sec = (int) endtime.ru_utime.tv_sec;*/
-		/*if( sec > 20 ) break;*/
+		if (docheck) {
+			if (BRANCHING_COUNT > limit) {
+				finished = false;
+				break;
+			}
+			getrusage(RUSAGE_SELF, &endtime);
+			long sec = (int)endtime.ru_utime.tv_sec;
+			if (sec > sec_limit) {
+				finished = false;
+				break;
+			}
+		}
+
 		if (docheck && BRANCHING_COUNT > limit) {
 			finished = false;
 			break;
@@ -1716,17 +1726,18 @@ static bool search_maxclique(int cutoff, int print_info, int limit = 1000000000,
 			}
 		}
 	}
-	/*if (print_info == TRUE) {*/
-	/*printf("p %4d |%5d |%8d %10d %10d %10d|%10d \n", MAX_CLQ_SIZE,*/
-	/*Last_Idx - CURSOR,cut_ver,cut_inc, cut_iset, cut_satz,BRANCHING_COUNT);*/
-	/*total_cut_ver += cut_ver;*/
-	/*total_cut_inc += cut_inc;*/
-	/*total_cut_iset += cut_iset;*/
-	/*total_cut_satz += cut_satz;*/
-	/*printf(*/
-	/*"c  ----------------------------------------------------------------\n");*/
-	/*printf("c %4d |%5d |%8d %10d %10d %10d|%10d \n", MAX_CLQ_SIZE, CURSOR+1,total_cut_ver,total_cut_inc, total_cut_iset, total_cut_satz,BRANCHING_COUNT);*/
-	/*}*/
+	if (print_info == TRUE) {
+		printf("p %4d |%5d |%8d %10d %10d %10d|%10d \n", MAX_CLQ_SIZE, Last_Idx - CURSOR, cut_ver,
+				cut_inc, cut_iset, cut_satz, BRANCHING_COUNT);
+		total_cut_ver += cut_ver;
+		total_cut_inc += cut_inc;
+		total_cut_iset += cut_iset;
+		total_cut_satz += cut_satz;
+		printf("c  ----------------------------------------------------------------\n");
+		printf("c %4d |%5d |%8d %10d %10d %10d|%10d \n", MAX_CLQ_SIZE, CURSOR + 1, total_cut_ver,
+				total_cut_inc, total_cut_iset, total_cut_satz, BRANCHING_COUNT);
+	}
+
 	return finished;
 }
 

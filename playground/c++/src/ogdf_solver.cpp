@@ -83,8 +83,8 @@ void reduceAndSolve(Instance& I, int d) {
 	}
 
 	if (I.isVCInstance() && I.numNotSubsumed() < 500) {
-		log << "Solving with clique solver for 10 seconds" << std::endl;
-		if (solveMISInstanceWithCliqueSolver(I, 1000000, true)) {
+		log << "Solving with clique solver for 300 seconds" << std::endl;
+		if (solveMISInstanceWithCliqueSolver(I, 100000000, true, 300)) {
 			log << "Clique solver found a solution!" << std::endl;
 			return;
 		}

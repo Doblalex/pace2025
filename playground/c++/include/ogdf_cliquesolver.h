@@ -180,7 +180,8 @@ void nullout() {
 	APPEND_STACK_USED = 0;
 }
 
-bool solveMISInstanceWithCliqueSolver(Instance& I, long limit, bool docheck = false) {
+bool solveMISInstanceWithCliqueSolver(Instance& I, long limit_branches, bool docheck = false,
+		long limit_seconds = 3600) {
 	OGDF_ASSERT(I.isVCInstance())
 	nullout();
 
@@ -239,7 +240,7 @@ bool solveMISInstanceWithCliqueSolver(Instance& I, long limit, bool docheck = fa
 	init_for_maxclique(ordering, _all);
 	re_code();
 
-	bool finished = search_maxclique(0, FALSE, limit, docheck);
+	bool finished = search_maxclique(0, FALSE, limit_branches, docheck, limit_seconds);
 	std::vector<int> solution;
 	std::unordered_set<ogdf::node> clique;
 	if (!finished) {
