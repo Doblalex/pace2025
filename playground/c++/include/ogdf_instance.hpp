@@ -342,6 +342,8 @@ public:
 
 	bool reductionVCLP();
 
+	bool reductionNeighborhoodVW();
+
 	bool isVCInstance() {
 		for (auto node : G.nodes) {
 			if (countCanBeDominatedBy(node) != 2) {

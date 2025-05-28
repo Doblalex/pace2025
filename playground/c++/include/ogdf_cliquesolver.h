@@ -182,7 +182,7 @@ void nullout() {
 
 bool solveMISInstanceWithCliqueSolver(Instance& I, long limit_branches, bool docheck = false,
 		long limit_seconds = 3600) {
-	OGDF_ASSERT(I.isVCInstance())
+	OGDF_ASSERT(I.isVCInstance());
 	nullout();
 
 	int numvertices = 0;

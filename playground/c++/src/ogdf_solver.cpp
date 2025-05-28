@@ -51,6 +51,8 @@ void reduceAndSolve(Instance& I, int d) {
 			// 	changed = true;
 		} else if (I.reductionBCTree(d)) {
 			changed = true;
+		// } else if (I.reductionNeighborhoodVW()) {
+		// 	changed = true;
 		}
 
 		// some RRs only add subsumed / dominated nodes without actually deleting sth (or rather only their imaginary selfloop)
@@ -82,7 +84,7 @@ void reduceAndSolve(Instance& I, int d) {
 		}
 	}
 
-	if (I.isVCInstance() && I.numNotSubsumed() < 500) {
+	if (I.isVCInstance() && I.numNotSubsumed() < 1000) {
 		log << "Solving with clique solver for 300 seconds" << std::endl;
 		if (solveMISInstanceWithCliqueSolver(I, 100000000, true, 300)) {
 			log << "Clique solver found a solution!" << std::endl;

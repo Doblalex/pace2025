@@ -737,7 +737,7 @@ bool Instance::reductionContraction() {
 bool Instance::reductionSpecial1() {
 	// generalisation of RR 6 of https://www.sciencedirect.com/science/article/pii/S0166218X11002393
 	size_t applications = 0;
-	ogdf::NodeArray<u_int32_t> nodeinBipGraph(G, 0);
+	ogdf::NodeArray<u_int32_t> countDomBy(G, 0);
 	for (auto it = G.nodes.begin(); it != G.nodes.end();) {
 		auto Sv = *it;
 		it++;
@@ -749,19 +749,17 @@ bool Instance::reductionSpecial1() {
 			return true;
 		});
 		if (freq2neighs.size() > 1) {
-			u_int32_t max = 0;
-			u_int32_t indexf = 0;
-			std::vector<std::pair<u_int32_t, u_int32_t>> edges;
+			forAllCanDominate(Sv, [&](ogdf::node adj) {
+				countDomBy[adj]++;
+				return true;
+			});
+
 			for (auto n : freq2neighs) {
-				indexf++;
 				forAllCanBeDominatedBy(n, [&](ogdf::node Siv) {
 					if (Siv != Sv) {
 						forAllCanDominate(Siv, [&](ogdf::node adj) {
 							if (adj != n) {
-								if (nodeinBipGraph[adj] == 0) {
-									nodeinBipGraph[adj] = ++max;
-								}
-								edges.push_back({indexf, nodeinBipGraph[adj]});
+								countDomBy[adj]++;
 							}
 							return true;
 						});
@@ -769,27 +767,48 @@ bool Instance::reductionSpecial1() {
 					return true;
 				});
 			}
+			bool foundsome = false;
+			for (auto n : freq2neighs) {
+				forAllCanBeDominatedBy(n, [&](ogdf::node Siv) {
+					if (Siv != Sv) {
+						bool reduce = true;
+						forAllCanDominate(Siv, [&](ogdf::node adj) {
+							if (adj != n && countDomBy[adj] < 2) {
+								reduce = false;
+								return false;
+							}
+							return true;
+						});
+						if (reduce) {
+							foundsome = true;
+							return false;
+						}
+					}
+					return true;
+				});
+			}
+
+			forAllCanDominate(Sv, [&](ogdf::node adj) {
+				countDomBy[adj] = 0;
+				return true;
+			});
 			for (auto n : freq2neighs) {
 				forAllCanBeDominatedBy(n, [&](ogdf::node Siv) {
 					if (Siv != Sv) {
 						forAllCanDominate(Siv, [&](ogdf::node adj) {
-							nodeinBipGraph[adj] = 0;
+							if (adj != n) {
+								countDomBy[adj] = 0;
+							}
 							return true;
 						});
 					}
 					return true;
 				});
 			}
-			BipartiteGraph B(freq2neighs.size(), max);
-			for (auto& e : edges) {
-				B.add_edge(e.first, e.second);
-			}
-			auto matching_size = B.hopcroftKarp_algorithm();
-			if (matching_size < freq2neighs.size()) {
+
+			if (foundsome) {
 				applications++;
-				addToDominatingSet(Sv);
-			} else {
-				OGDF_ASSERT(matching_size == freq2neighs.size());
+				addToDominatingSet(Sv, it);
 			}
 		}
 	}
@@ -891,4 +910,145 @@ bool Instance::reductionSpecial2(int d) {
 		return true;
 	}
 	return false;
+}
+
+bool Instance::reductionNeighborhoodVW() {
+	ogdf::NodeArray<std::unordered_set<ogdf::node>> reductionpairs(G);
+	size_t applications = 0;
+	for (auto node : G.nodes) {
+		std::vector<ogdf::node> domby;
+		forAllCanBeDominatedBy(node, [&](ogdf::node adj) {
+			domby.push_back(adj);
+			return true;
+		});
+		for (int i = 0; i < domby.size(); i++) {
+			for (int j = i + 1; j < domby.size(); j++) {
+				auto a = std::min(domby[i], domby[j]);
+				auto b = std::max(domby[i], domby[j]);
+				reductionpairs[a].insert(b);
+			}
+		}
+	}
+	ogdf::NodeSet N(G);
+	ogdf::NodeSet N1(G);
+	ogdf::NodeSet N2(G);
+	ogdf::NodeSet N3(G);
+	ogdf::NodeSet N3v(G);
+	ogdf::NodeSet N3w(G);
+	ogdf::NodeSet N2v(G);
+	ogdf::NodeSet N2w(G);
+	ogdf::NodeSet A(G);
+	for (auto v : G.nodes) {
+		if (is_subsumed[v]) {
+			continue;
+		}
+		// auto v = *it;
+		// it++;
+		for (auto w : G.nodes) {
+			if (v == w) {
+				continue;
+			}
+			if (is_subsumed[w]) {
+				continue;
+			}
+			N.clear();
+			N1.clear();
+			N2.clear();
+			N3.clear();
+			N3v.clear();
+			N3w.clear();
+			A.clear();
+
+			forAllCanDominate(v, [&](ogdf::node adj) {
+				if (adj != w) {
+					N.insert(adj);
+				}
+				return true;
+			});
+			forAllCanDominate(w, [&](ogdf::node adj) {
+				if (adj != v) {
+					N.insert(adj);
+				}
+				return true;
+			});
+
+			for (auto node : N) {
+				bool inA = true;
+				forAllCanDominate(node, [&](ogdf::node adj) {
+					if (adj != v && adj != w && !N.contains(adj)) {
+						inA = false;
+						return false;
+					}
+					return true;
+				});
+				if (inA) {
+					A.insert(node);
+				}
+			}
+
+			for (auto node : A) {
+				bool inn3 = true;
+				forAllCanBeDominatedBy(node, [&](ogdf::node adj) {
+					if (!A.contains(adj)) {
+						inn3 = false;
+						return false;
+					}
+					return true;
+				});
+				if (inn3) {
+					N3.insert(node);
+				}
+			}
+
+			forAllCanDominate(v, [&](ogdf::node adj) {
+				if (N3.contains(v)) {
+					N3v.insert(v);
+				}
+				return true;
+			});
+			forAllCanDominate(w, [&](ogdf::node adj) {
+				if (N3.contains(v)) {
+					N3w.insert(v);
+				}
+				return true;
+			});
+
+			// now check that noone from N2 or N3 can dominate all of N3
+			bool ok = N3.size() > 0;
+			for (auto node : A) {
+				if (!ok) {
+					break;
+				}
+				int fromN3 = 0;
+				forAllCanDominate(node, [&](ogdf::node adj) {
+					if (N3.contains(adj)) {
+						fromN3++;
+					}
+					return true;
+				});
+				if (fromN3 == N3.size()) {
+					ok = false;
+				}
+			}
+
+
+			if (ok) {
+				if (N3v.size() == N3.size() && N3w.size() == N3.size()) {
+					log << "Red Case 1.1" << std::endl;
+				} else if (N3v.size() == N3.size()) {
+					log << "Red Case 1.2" << std::endl;
+				} else if (N3w.size() == N3.size()) {
+					log << "Red Case 1.3" << std::endl;
+				} else {
+					applications++;
+					log << "Red Case 2" << std::endl;
+					addToDominatingSet(v);
+					addToDominatingSet(w);
+					return true;
+					break;
+				}
+			}
+		}
+	}
+	return applications > 0;
 }
