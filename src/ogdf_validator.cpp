@@ -34,6 +34,7 @@ int main(int argc, char** argv) {
 	for (int i = 0; i < cnt; i++) {
 		getline(std::cin, line);
 		if (line.empty() || line[0] == 'c') {
+			i--;
 			continue;
 		}
 		int u;
