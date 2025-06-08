@@ -1,18 +1,19 @@
-#include "ogdf_instance.hpp"
-
 #include <stack>
 
+#include <ogdf/basic/GraphAttributes.h>
+#include <ogdf/basic/GraphSets.h>
+#include <ogdf/basic/simple_graph_alg.h>
+#include <ogdf/decomposition/BCTree.h>
+#include <ogdf/decomposition/StaticSPQRTree.h>
+#include <ogdf/energybased/FMMMLayout.h>
+#include <ogdf/fileformats/GraphIO.h>
+#include <ogdf/layered/SugiyamaLayout.h>
+
 #include "matching.hpp"
-#include "ogdf/basic/GraphAttributes.h"
-#include "ogdf/basic/GraphSets.h"
-#include "ogdf/basic/simple_graph_alg.h"
-#include "ogdf/decomposition/BCTree.h"
-#include "ogdf/decomposition/StaticSPQRTree.h"
-#include "ogdf/energybased/FMMMLayout.h"
-#include "ogdf/fileformats/GraphIO.h"
-#include "ogdf/layered/SugiyamaLayout.h"
+
 #include "ogdf_solver.hpp"
 #include "ogdf_subsetrefine.hpp"
+#include "ogdf_instance.hpp"
 
 void Instance::dumpBCTree() {
 	std::string stamp = std::to_string(std::chrono::system_clock::now().time_since_epoch().count())

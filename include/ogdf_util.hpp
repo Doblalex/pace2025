@@ -3,7 +3,7 @@
 #include <chrono>
 #include <filesystem>
 
-#include "ogdf/basic/Graph.h"
+#include <ogdf/basic/Graph.h>
 
 extern ogdf::Logger logger;
 

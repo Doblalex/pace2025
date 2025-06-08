@@ -7,12 +7,13 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 set(PACE_USE_GUROBI OFF CACHE BOOL "use installed Gurobi")
-set(PACE_USE_EVALMAXSAT OFF CACHE BOOL "use installed or subproject-built EvalMaxSat")
+set(PACE_USE_EVALMAXSAT ON CACHE BOOL "use installed or subproject-built EvalMaxSat")
 set(PACE_USE_UWRMAXSAT OFF CACHE BOOL "use installed UWrMaxSat")
 set(PACE_USE_ORTOOLS OFF CACHE BOOL "use installed or subproject-built ortools")
-set(PACE_USE_OGDF ON CACHE BOOL "use installed or subproject-built OGDF")
+
 set(PACE_USE_ASAN OFF CACHE BOOL "use the address sanitizer")
 set(PACE_ARCH "native" CACHE STRING "Target CPU (micro)architecture passed to the compiler via `-march`.")
+
 set(PACE_LOG OFF CACHE BOOL "enable logging")
 set(PACE_SAT_CACHE OFF CACHE BOOL "enable SAT solution caching")
 
@@ -44,7 +45,7 @@ if(PACE_USE_ASAN)
     add_link_options(-fno-omit-frame-pointer -fsanitize=address)
 endif()
 
-include_directories(${PROJECT_SOURCE_DIR}/include)
+include_directories(${PROJECT_SOURCE_DIR}/include ${PROJECT_SOURCE_DIR}/include/ext)
 add_executable(ogdf_dsexact
     src/ogdf_instance.cpp
     src/ogdf_io.cpp
@@ -167,27 +168,23 @@ add_subdirectory(${PROJECT_SOURCE_DIR}/ext/htd)
 target_link_libraries(ogdf_dsexact htd)
 
 # OGDF -----------------------------------------------------------------
-if(PACE_USE_OGDF)
-    find_package(OGDF)
-    add_compile_definitions(USE_OGDF)
+find_package(OGDF)
+if (${OGDF_FOUND})
+    message(STATUS "OGDF found")
+else ()
+    set(OGDF_ARCH "native" CACHE STRING "OGDF_ARCH defaults to haswell")
+    set(OGDF_MEMORY_MANAGER POOL_NTS CACHE STRING "OGDF_MEMORY_MANAGER defaults to POOL_NTS")
 
-    if(${OGDF_FOUND})
-        message(STATUS "OGDF found")
-    else()
-        set(OGDF_ARCH "native" CACHE STRING "OGDF_ARCH defaults to haswell")
-        set(OGDF_MEMORY_MANAGER POOL_NTS CACHE STRING "OGDF_MEMORY_MANAGER defaults to POOL_NTS")
+    if (CMAKE_BUILD_TYPE STREQUAL "Release")
+        set(OGDF_USE_ASSERT_EXCEPTIONS OFF CACHE BOOL "OGDF_USE_ASSERT_EXCEPTIONS defaults to OFF")
+    else ()
+        set(OGDF_USE_ASSERT_EXCEPTIONS ON CACHE BOOL "OGDF_USE_ASSERT_EXCEPTIONS defaults to ON")
+    endif ()
 
-        if(CMAKE_BUILD_TYPE STREQUAL "Release")
-            set(OGDF_USE_ASSERT_EXCEPTIONS OFF CACHE BOOL "OGDF_USE_ASSERT_EXCEPTIONS defaults to OFF")
-        else()
-            set(OGDF_USE_ASSERT_EXCEPTIONS ON CACHE BOOL "OGDF_USE_ASSERT_EXCEPTIONS defaults to ON")
-        endif()
+    list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/ext/ogdf/cmake")
+    add_subdirectory("${PROJECT_SOURCE_DIR}/ext/ogdf")
+    include_directories(${PROJECT_SOURCE_DIR}/ext/ogdf/include)
+endif ()
 
-        list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/ext/ogdf/cmake")
-        add_subdirectory("${PROJECT_SOURCE_DIR}/ext/ogdf")
-        include_directories(${PROJECT_SOURCE_DIR}/ext/ogdf/include)
-    endif()
-
-    target_link_libraries(ogdf_dsexact OGDF)
-    target_link_libraries(ogdf_validate OGDF)
-endif()
+target_link_libraries(ogdf_dsexact OGDF)
+target_link_libraries(ogdf_validate OGDF)

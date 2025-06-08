@@ -1,7 +1,8 @@
 #include "ogdf_solver.hpp"
 #include "ogdf_util.hpp"
-#include "ortools/linear_solver/linear_expr.h"
-#include "ortools/linear_solver/linear_solver.h"
+
+#include <ortools/linear_solver/linear_expr.h>
+#include <ortools/linear_solver/linear_solver.h>
 
 void solvecpsat(Instance& I) {
 	using namespace operations_research;

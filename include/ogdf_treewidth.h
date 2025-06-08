@@ -8,10 +8,11 @@
 #include <queue>
 #include <stack>
 
-#include "ogdf/basic/GraphSets.h"
+#include <ogdf/basic/GraphSets.h>
+#include <htd/main.hpp>
+
 #include "ogdf_instance.hpp"
 #include "ogdf_util.hpp"
-#include <htd/main.hpp>
 
 typedef size_t TW_SIGNATURE_TYPE;
 #define TW_WAITING 0

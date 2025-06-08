@@ -1,5 +1,4 @@
 #include "ogdf_solver.hpp"
-
 #include "ogdf_cliquesolver.h"
 #include "ogdf_treewidth.h"
 
