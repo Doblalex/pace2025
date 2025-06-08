@@ -2,16 +2,16 @@
 	path = instances/official
 	url = https://github.com/MarioGrobler/PACE2025-instances.git
 	shallow = true
-[submodule "ortools"]
-	path = playground/c++/ext/or-tools
-	url = https://github.com/google/or-tools.git
-	shallow = true
+# [submodule "ortools"]
+# 	path = ext/or-tools
+# 	url = https://github.com/google/or-tools.git
+# 	shallow = true
 [submodule "ogdf"]
-	path = playground/c++/ext/ogdf
+	path = ext/ogdf
 	url = https://github.com/N-Coder/ogdf.git
 [submodule "htd"]
-	path = playground/c++/ext/htd
-	url = git@github.com:Doblalex/htd_for_pace2025.git
+	path = ext/htd
+	url = https://github.com/Doblalex/htd_for_pace2025.git
 [submodule "playground/c++/ext/EvalMaxSat"]
-	path = playground/c++/ext/EvalMaxSat
-	url = git@github.com:Doblalex/EvalMaxSAT-pace2025.git
+	path = ext/EvalMaxSat
+	url = https://github.com/Doblalex/EvalMaxSAT-pace2025.git
