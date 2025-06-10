@@ -16,7 +16,7 @@ cmake .. # by default we have CMAKE_BUILD_TYPE=Release
 make -j $(nproc)
 popd
 
-inst=instances/official/ds/exact/exact_001.gr
+inst=instances/small/bremen_subgraph_20.gr
 cat $inst | build-release/ogdf_dsexact | tee out.txt
 cat out.txt | ./ogdf_validate $inst
 ```
@@ -25,7 +25,7 @@ Alternatively, see the `Dockerfile` for a containerized build:
 
 ```shell
 docker build . -t pace25-bdsm
-cat instances/official/ds/exact/exact_001.gr | docker run pace25-bdsm ogdf_dsexact
+cat instances/small/bremen_subgraph_20.gr | docker run pace25-bdsm ogdf_dsexact
 ```
 
 In its default configuration, the project depends on (slightly modified versions of) the
