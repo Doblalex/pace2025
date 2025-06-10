@@ -1,11 +1,3 @@
-# [submodule "instances"]
-# 	path = instances/official
-# 	url = https://github.com/MarioGrobler/PACE2025-instances.git
-# 	shallow = true
-# [submodule "ortools"]
-# 	path = ext/or-tools
-# 	url = https://github.com/google/or-tools.git
-# 	shallow = true
 [submodule "ogdf"]
 	path = ext/ogdf
 	url = https://github.com/N-Coder/ogdf.git
@@ -15,3 +7,11 @@
 [submodule "EvalMaxSat"]
 	path = ext/EvalMaxSat
 	url = https://github.com/Doblalex/EvalMaxSAT-pace2025.git
+# [submodule "instances"]
+# 	path = instances/official
+# 	url = https://github.com/MarioGrobler/PACE2025-instances.git
+# 	shallow = true
+# [submodule "ortools"]
+# 	path = ext/or-tools
+# 	url = https://github.com/google/or-tools.git
+# 	shallow = true
