@@ -46,7 +46,7 @@ if(PACE_USE_ASAN)
 endif()
 
 include_directories(${PROJECT_SOURCE_DIR}/include ${PROJECT_SOURCE_DIR}/include/ext)
-add_executable(ogdf_dsexact
+set(SOURCES
     src/ogdf_instance.cpp
     src/ogdf_io.cpp
     src/ogdf_main.cpp
@@ -55,11 +55,15 @@ add_executable(ogdf_dsexact
     src/ogdf_treewidth.cpp
     src/ogdf_vcreductions.cpp
     src/ogdf_solver/sol_greedy.cpp)
+add_executable(ogdf_dsexact ${SOURCES})
+add_executable(ogdf_dsexact2 ${SOURCES})
+target_compile_definitions(ogdf_dsexact2 PUBLIC PACE_EMS_FACTOR=2)
 add_executable(ogdf_validate src/ogdf_validator.cpp src/ogdf_io.cpp)
 
 if(PACE_SAT_CACHE)
     add_compile_definitions(SAT_CACHE)
     target_sources(ogdf_dsexact PUBLIC src/ogdf_solver/satcache.cpp)
+    target_sources(ogdf_dsexact2 PUBLIC src/ogdf_solver/satcache.cpp)
 endif()
 
 find_package(ZLIB)
@@ -69,6 +73,7 @@ include_directories(${ZLIB_INCLUDE_DIR})
 if(PACE_USE_EVALMAXSAT)
     add_compile_definitions(USE_EVALMAXSAT)
     target_sources(ogdf_dsexact PUBLIC src/ogdf_solver/sol_evalmaxsat.cpp)
+    target_sources(ogdf_dsexact2 PUBLIC src/ogdf_solver/sol_evalmaxsat.cpp)
     set(localLibs
         MaLib
         cadical
@@ -83,12 +88,14 @@ if(PACE_USE_EVALMAXSAT)
     endforeach(localLib)
 
     target_link_libraries(ogdf_dsexact ${localLibs} z)
+    target_link_libraries(ogdf_dsexact2 ${localLibs} z)
 endif()
 
 # UWrMaxSat ----------------------------------------------------------------
 if(PACE_USE_UWRMAXSAT)
     add_compile_definitions(USE_UWRMAXSAT)
     target_sources(ogdf_dsexact PUBLIC src/ogdf_solver/sol_uwrmaxsat.cpp)
+    target_sources(ogdf_dsexact2 PUBLIC src/ogdf_solver/sol_uwrmaxsat.cpp)
     find_path(UWRMAXSAT_INCLUDE_DIR "uwrmaxsat/ipamir.h" HINTS "${PROJECT_SOURCE_DIR}/ext")
     find_library(UWRMAXSAT_LIBRARY uwrmaxsat HINTS "${PROJECT_SOURCE_DIR}/ext/uwrmaxsat/build/release/lib")
     find_library(LMAXPRE_LIBRARY maxpre HINTS "${PROJECT_SOURCE_DIR}/ext/maxpre/src/lib")
@@ -119,17 +126,20 @@ if(PACE_USE_UWRMAXSAT)
     target_link_options(UWrMaxSat INTERFACE "-D USE_SCIP")
 
     target_link_libraries(ogdf_dsexact UWrMaxSat)
+    target_link_libraries(ogdf_dsexact2 UWrMaxSat)
 endif()
 
 # GUROBI -------------------------------------------------------------------
 if(PACE_USE_GUROBI)
     add_compile_definitions(USE_GUROBI)
     target_sources(ogdf_dsexact PUBLIC src/ogdf_solver/sol_gurobi.cpp)
+    target_sources(ogdf_dsexact2 PUBLIC src/ogdf_solver/sol_gurobi.cpp)
     list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/modules")
     find_package(GUROBI REQUIRED)
 
     include_directories(${GUROBI_INCLUDE_DIRS})
     target_link_libraries(ogdf_dsexact ${GUROBI_LIBRARY})
+    target_link_libraries(ogdf_dsexact2 ${GUROBI_LIBRARY})
 endif()
 
 # OR-TOOLS -----------------------------------------------------------------
@@ -137,6 +147,7 @@ if(PACE_USE_ORTOOLS)
     find_package(ortools)
     add_compile_definitions(USE_ORTOOLS)
     target_sources(ogdf_dsexact PUBLIC src/ogdf_solver/sol_ortools.cpp)
+    target_sources(ogdf_dsexact2 PUBLIC src/ogdf_solver/sol_ortools.cpp)
 
     if(${ortools_FOUND})
         message(STATUS "ortools found")
@@ -159,6 +170,7 @@ if(PACE_USE_ORTOOLS)
     endif()
 
     target_link_libraries(ogdf_dsexact ortools::ortools)
+    target_link_libraries(ogdf_dsexact2 ortools::ortools)
 endif()
 
 # HTD ----------------------------------------------------------------------
@@ -166,9 +178,10 @@ include_directories(${PROJECT_SOURCE_DIR}/ext/htd/include)
 add_subdirectory(${PROJECT_SOURCE_DIR}/ext/htd)
 
 target_link_libraries(ogdf_dsexact htd)
+target_link_libraries(ogdf_dsexact2 htd)
 
 # OGDF -----------------------------------------------------------------
-find_package(OGDF)
+#find_package(OGDF)
 if (${OGDF_FOUND})
     message(STATUS "OGDF found")
 else ()
@@ -187,4 +200,5 @@ else ()
 endif ()
 
 target_link_libraries(ogdf_dsexact OGDF)
+target_link_libraries(ogdf_dsexact2 OGDF)
 target_link_libraries(ogdf_validate OGDF)

@@ -6,6 +6,10 @@ void reduceAndSolve(Instance& I, int d = 0);
 
 void solveGreedy(Instance& I);
 
+#ifndef PACE_EMS_FACTOR
+#define PACE_EMS_FACTOR 1
+#endif
+
 #ifdef USE_EVALMAXSAT
 void solveEvalMaxSat(Instance& I);
 #endif

@@ -21,12 +21,11 @@ ENV PATH="/usr/lib/ccache:$PATH"
 
 FROM base AS build
 WORKDIR /root
-RUN git clone https://github.com/Doblalex/pace2025.git
-WORKDIR /root/pace2025
-RUN git rm instances/official/ || echo "official instances not present"; \
-   git submodule update --init --recursive \
-RUN mkdir build-release && \
-   cd build-release  && \
-   cmake .. -DCMAKE_BUILD_TYPE=Release  && \
-   make -j $(nproc)
+RUN git clone https://github.com/Doblalex/pace2025.git && \
+    cd pace2025 && \
+    git submodule update --init --recursive &&\
+    mkdir build-release && \
+    cd build-release && \
+    cmake .. && \
+    make -j $(nproc)
 ENV PATH="/root/pace2025/build-release:$PATH"
