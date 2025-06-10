@@ -57,7 +57,7 @@ set(SOURCES
     src/ogdf_solver/sol_greedy.cpp)
 add_executable(ogdf_dsexact ${SOURCES})
 add_executable(ogdf_dsexact2 ${SOURCES})
-target_compile_definitions(ogdf_dsexact2 PUBLIC PACE_EMS_FACTOR=2)
+target_compile_definitions(ogdf_dsexact2 PUBLIC PACE_EMS_FACTOR=2.0)
 add_executable(ogdf_validate src/ogdf_validator.cpp src/ogdf_io.cpp)
 
 if(PACE_SAT_CACHE)
@@ -181,7 +181,7 @@ target_link_libraries(ogdf_dsexact htd)
 target_link_libraries(ogdf_dsexact2 htd)
 
 # OGDF -----------------------------------------------------------------
-#find_package(OGDF)
+find_package(OGDF)
 if (${OGDF_FOUND})
     message(STATUS "OGDF found")
 else ()
