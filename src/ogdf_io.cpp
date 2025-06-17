@@ -4,10 +4,21 @@ void Instance::read(std::istream& is, std::vector<ogdf::node>& ID2node) {
 	unsigned int n, m;
 	std::string s;
 	std::string line;
-	getline(is, line);
+	while (line.empty() || line[0] == 'c') {
+		if (!is.good()) {
+			std::cerr << "Error reading input" << std::endl;
+			std::exit(1);
+		}
+		getline(is, line);
+	}
 	std::istringstream iss(line);
 	iss >> s;
-	OGDF_ASSERT(s == "p");
+	if (s != "p") {
+		std::cerr
+				<< "Bad header line not matching `p (ds|hs) [0-9]+ [0-9]+`: " << line.substr(0, 100)
+				<< std::endl;
+		std::exit(1);
+	}
 	iss >> type;
 	iss >> n >> m;
 	if (type == "ds") {
@@ -34,9 +45,13 @@ void Instance::read_DS(std::istream& is, std::vector<ogdf::node>& ID2node, unsig
 	}
 	maxid = n;
 	for (int i = 0; i < m; i++) {
-		getline(is, line);
-		if (line.empty() || line[0] == 'c') {
-			continue;
+		line.clear();
+		while (line.empty() || line[0] == 'c') {
+			if (!is.good()) {
+				std::cerr << "Error reading input" << std::endl;
+				std::exit(1);
+			}
+			getline(is, line);
 		}
 		int u, v;
 		std::istringstream iss(line);
@@ -69,9 +84,13 @@ void Instance::read_HS(std::istream& is, std::vector<ogdf::node>& ID2node, unsig
 		}
 	}
 	for (int i = 0; i < m; i++) {
-		getline(is, line);
-		if (line.empty() || line[0] == 'c') {
-			continue;
+		line.clear();
+		while (line.empty() || line[0] == 'c') {
+			if (!is.good()) {
+				std::cerr << "Error reading input" << std::endl;
+				std::exit(1);
+			}
+			getline(is, line);
 		}
 		std::istringstream iss(line);
 		int u;

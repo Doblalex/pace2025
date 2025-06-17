@@ -24,6 +24,10 @@ int main(int argc, char** argv) {
 
 	std::string line;
 	while (line.empty() || line[0] == 'c') {
+		if (!std::cin.good()) {
+			std::cerr << "Error reading input" << std::endl;
+			std::exit(1);
+		}
 		getline(std::cin, line);
 	}
 	int cnt;
@@ -32,10 +36,13 @@ int main(int argc, char** argv) {
 	std::cout << I.type << " with " << cnt << " vertices" << std::endl;
 
 	for (int i = 0; i < cnt; i++) {
-		getline(std::cin, line);
-		if (line.empty() || line[0] == 'c') {
-			i--;
-			continue;
+		line.clear();
+		while (line.empty() || line[0] == 'c') {
+			if (!std::cin.good()) {
+				std::cerr << "Error reading input" << std::endl;
+				std::exit(1);
+			}
+			getline(std::cin, line);
 		}
 		int u;
 		std::istringstream iss(line);
