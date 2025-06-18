@@ -69,6 +69,14 @@ endif()
 find_package(ZLIB)
 include_directories(${ZLIB_INCLUDE_DIR})
 
+set(Boost_USE_STATIC_LIBS ON)
+set(Boost_USE_MULTITHREADED OFF)
+set(Boost_USE_STATIC_RUNTIME ON)
+find_package(Boost 1.64 COMPONENTS process asio)
+
+# PEATY --------------------------------------------------------------------
+add_subdirectory("${PROJECT_SOURCE_DIR}/ext/peaty")
+
 # EVALMAXSAT ---------------------------------------------------------------
 if(PACE_USE_EVALMAXSAT)
     add_compile_definitions(USE_EVALMAXSAT)

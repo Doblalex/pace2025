@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y \
     wget \
     unzip \
     cmake \
+    coreutils \
     libboost-all-dev \
     python3 \
     python3-pip \

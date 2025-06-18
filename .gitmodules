@@ -15,3 +15,6 @@
 # 	path = ext/or-tools
 # 	url = https://github.com/google/or-tools.git
 # 	shallow = true
+[submodule "ext/peaty"]
+	path = ext/peaty
+	url = https://github.com/jamestrimble/peaty.git

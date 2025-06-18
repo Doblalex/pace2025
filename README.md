@@ -30,12 +30,19 @@ cat instances/small/bremen_subgraph_20.gr | docker run -i pace25-bdsm ogdf_dsexa
 
 In its default configuration, the project depends on (slightly modified versions of) the
 [OGDF](https://github.com/N-Coder/ogdf.git),
-[htd](https://github.com/Doblalex/htd_for_pace2025.git), and
+[htd](https://github.com/Doblalex/htd_for_pace2025.git),
+[peaty](https://github.com/jamestrimble/peaty.git), and
 [EvalMaxSAT](https://github.com/Doblalex/EvalMaxSAT-pace2025.git).
 All these dependencies are registered as git submodules in the `./ext` folder
 and will be built in an appropriate configuration by the main CMakeFile.
 See the commented-out `or-tools` module in `.gitmodules` and `ext/build-uwrmaxsat.sh` for
 the other, alternative MaxSAT solvers that can be used instead of EvalMaxSAT.
+
+Peaty is called as external executable that needs to be located at the path `./ext/peaty/solve_vc` relative to the
+path of the `ogdf_dsexact` executable.
+Our CMake build ensures that peaty is built and available at that path, but you also need to move `solve_vs` accordingly
+when moving the `ogdf_dsexact` executable.
+Additionally, the coreutils `/usr/bin/timeout` executable needs to be available to wrap the call to peaty.
 
 ## CMake Options
 
