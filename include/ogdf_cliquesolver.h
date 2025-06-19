@@ -52,7 +52,7 @@ bool solveMISInstanceWithCliqueSolver(Instance& I, long limit_branches, bool doc
 		});
 	}
 
-	bp::opstream ofs;
+	std::stringstream ofs;
 	ofs << "p td " << (numvertices - 1) << " " << numedges << std::endl;
 	for (int i = 1; i < numvertices; i++) {
 		I.forAllCanDominate(indexToNode[i], [&](ogdf::node adj) {
@@ -65,14 +65,17 @@ bool solveMISInstanceWithCliqueSolver(Instance& I, long limit_branches, bool doc
 			return true;
 		});
 	}
+	std::string inp = ofs.str(); // needs to be stored on stack for wrapping in buffer
 
 	log << "Trying to solve VC instance with " << numvertices - 1 << " vertices and " << numedges
 		<< " edges for " << limit_seconds << "s" << std::endl;
+	// log << std::endl << inp << std::endl;
 	boost::asio::io_service ios;
 	std::future<std::string> data;
 	bp::child c("/usr/bin/timeout " + std::to_string(limit_seconds) + " "
 					+ get_executable_directory() + "/ext/peaty/solve_vc -q",
-			bp::std_out > data, bp::std_err > stderr, bp::std_in < ofs, ios);
+			bp::std_out > data, bp::std_err > stderr, bp::std_in < boost::asio::buffer(inp),
+			ios);
 	ios.run();
 	c.wait();
 	if (c.exit_code() != 0) {
